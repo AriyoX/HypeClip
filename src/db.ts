@@ -10,15 +10,17 @@ export function openDb(readOnly=false){
  db.exec('PRAGMA busy_timeout=10000');
  if(!readOnly){
  db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON');
+ atomic(db,()=>{
  const v=db.prepare('PRAGMA user_version').get()!.user_version;
- if(v===0)atomic(db,()=>db.exec(readFileSync(new URL('../migrations/001.sql',import.meta.url),'utf8')));
- else if(v!==1)throw Error('Unknown database version');
+ if(Number(v)>2)throw Error('Unknown database version');
+ for(const n of [1,2])if(Number(v)<n)db.exec(readFileSync(new URL('../migrations/00'+n+'.sql',import.meta.url),'utf8'));
+ });
  }
  return db;
 }
 export function atomic<T>(db:DatabaseSync,f:()=>T):T{db.exec('BEGIN IMMEDIATE');try{const r=f();db.exec('COMMIT');return r;}catch(e){db.exec('ROLLBACK');throw e;}}
 export function status(){const db=openDb(true);if(!db)return {jobs:[],intents:[],policy:[]};try{return {
- jobs:db.prepare('SELECT id,session,state,reason,result,evaluation,intent FROM jobs ORDER BY rowid DESC').all(),
+ jobs:db.prepare('SELECT j.id,j.session,coalesce(i.state,j.state) state,coalesce(i.reason,j.reason) reason,j.result,j.evaluation,j.intent FROM jobs j LEFT JOIN intents i ON i.id=j.intent ORDER BY j.rowid DESC').all(),
  intents:db.prepare('SELECT * FROM intents ORDER BY id DESC').all(),
  policy:db.prepare('SELECT * FROM policy').all(),cooldowns:db.prepare('SELECT * FROM cooldown').all()
  };}finally{db.close();}}
