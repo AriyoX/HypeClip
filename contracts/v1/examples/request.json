@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "candidate": {
+    "sessionId": "example",
+    "candidateId": "example-56000",
+    "sourcePath": "/recordings/example.mp4",
+    "startMs": 26000,
+    "endMs": 81000,
+    "outputDir": "/clips/example-56000"
+  },
+  "output": {
+    "width": 720,
+    "height": 1280,
+    "layout": "fit-pad"
+  }
+}

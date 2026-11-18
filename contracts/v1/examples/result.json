@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "ok": true,
+  "originalPath": "/clips/example-56000/original.mp4",
+  "verticalPath": "/clips/example-56000/vertical.mp4",
+  "transcriptPath": "/clips/example-56000/transcript.json",
+  "subtitlePath": "/clips/example-56000/subtitles.srt",
+  "durationMs": 55000,
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "qualityFlags": []
+}
