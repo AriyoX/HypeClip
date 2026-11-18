@@ -1,0 +1,2 @@
+ALTER TABLE intents ADD COLUMN inFlightUntil INTEGER NOT NULL DEFAULT 0;
+PRAGMA user_version=3;

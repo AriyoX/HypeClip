@@ -1,40 +1,145 @@
-import {beforeEach,afterEach,it,expect,vi} from 'vitest';
-import {mkdtempSync,copyFileSync,writeFileSync,rmSync,readFileSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {enable,processSession,processJob,runtime} from '../src/pipeline.ts';
-import type {Session} from '../src/pipeline.ts';
-import {openDb} from '../src/db.ts';
-import {fixtureResult} from '../src/demo.ts';
-import type {Evaluation} from '../src/evaluator.ts';
-import {jsonFile} from '../src/local.ts';
-const fixture=jsonFile('tests/fixtures/buffer.json');
-const accept:Evaluation={provider:'ollama',model:'fixture',decision:{decision:'accept',score:91,reason:'Clear story',suggestedCaption:'Last train',reviewFlags:[]}};
-let db:NonNullable<ReturnType<typeof openDb>>,dir:string,s:Session;
-function adapters(){
- return {...runtime,render:vi.fn(fixtureResult),evaluate:vi.fn(async()=>structuredClone(accept)),publisher:{...runtime.publisher,assetUrl:()=> 'https://example.invalid/video',host:vi.fn(async()=>{}),polls:1,provider:{channel:async()=>fixture.channel,create:vi.fn(async()=>fixture.post.id),read:async()=>fixture.post,matches:async()=>[]}}};
+import { beforeEach, afterEach, it, expect, vi } from "vitest";
+import {
+  mkdtempSync,
+  copyFileSync,
+  writeFileSync,
+  rmSync,
+  readFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  enable,
+  processSession,
+  processJob,
+  runtime,
+} from "../src/pipeline.ts";
+import type { Session } from "../src/pipeline.ts";
+import { openDb } from "../src/db.ts";
+import { fixtureResult } from "../src/demo.ts";
+import type { Evaluation } from "../src/evaluator.ts";
+import { jsonFile } from "../src/local.ts";
+const fixture = jsonFile("tests/fixtures/buffer.json");
+const accept: Evaluation = {
+  provider: "ollama",
+  model: "fixture",
+  verified: true,
+  decision: {
+    decision: "accept",
+    score: 91,
+    reason: "Clear story",
+    suggestedCaption: "Last train",
+    reviewFlags: [],
+  },
+};
+let db: NonNullable<ReturnType<typeof openDb>>, dir: string, s: Session;
+function adapters() {
+  return {
+    ...runtime,
+    render: vi.fn(fixtureResult),
+    evaluate: vi.fn(async () => structuredClone(accept)),
+    publisher: {
+      ...runtime.publisher,
+      assetUrl: () => "https://example.invalid/video",
+      host: vi.fn(async () => {}),
+      polls: 1,
+      provider: {
+        channel: async () => fixture.channel,
+        create: vi.fn(async () => fixture.post.id),
+        read: async () => fixture.post,
+        matches: async () => [],
+      },
+    },
+  };
 }
-beforeEach(()=>{
- dir=mkdtempSync(join(tmpdir(),'hc-session-'));vi.stubEnv('HYPECLIP_HOME',dir);vi.stubEnv('BUFFER_CHANNEL_ID','test');db=openDb()!;
- const source=join(dir,'obs.mp4'),chat=join(dir,'chat.jsonl');copyFileSync('tests/fixtures/recording.mp4',source);writeFileSync(chat,readFileSync('tests/fixtures/chat.jsonl','utf8').replaceAll('"fixture":true','"fixture":false'));
- s={session:'stream',source,chat,mediaStart:'2026-01-01T00:00:00Z',offsetMs:0,reactionMs:4000,rights:true,layout:'fit-pad'};
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), "hc-session-"));
+  vi.stubEnv("HYPECLIP_HOME", dir);
+  vi.stubEnv("BUFFER_CHANNEL_ID", "test");
+  db = openDb()!;
+  const source = join(dir, "obs.mp4"),
+    chat = join(dir, "chat.jsonl");
+  copyFileSync("tests/fixtures/recording.mp4", source);
+  writeFileSync(
+    chat,
+    readFileSync("tests/fixtures/chat.jsonl", "utf8").replaceAll(
+      '"fixture":true',
+      '"fixture":false',
+    ),
+  );
+  s = {
+    session: "stream",
+    source,
+    chat,
+    mediaStart: "2026-01-01T00:00:00Z",
+    offsetMs: 0,
+    reactionMs: 4000,
+    rights: true,
+    layout: "fit-pad",
+  };
 });
-afterEach(()=>{db.close();vi.unstubAllEnvs();rmSync(dir,{force:true,recursive:true});});
-it('flows from an authorized recording into the publisher exactly once',async()=>{
- enable(db,s.session,s.source,'test',1,true);const a=adapters();
- expect((await processSession(db,s,a))[0].state).toBe('published');await processSession(db,s,a);
- expect(a.publisher.provider.create).toHaveBeenCalledTimes(1);expect(a.render).toHaveBeenCalledTimes(1);
+afterEach(() => {
+  db.close();
+  vi.unstubAllEnvs();
+  rmSync(dir, { force: true, recursive: true });
 });
-it.each(['quality','rights','fixture','disabled','uncertain','reject','invalid'])('routes %s locally',async kind=>{
- const a=adapters();if(kind!=='disabled')enable(db,s.session,s.source,'test',1,true);
- s.rights=kind!=='rights';s.fixture=kind==='fixture';
- if(kind==='quality'||kind==='invalid')a.render.mockImplementation(async r=>({...await fixtureResult(r),qualityFlags:kind==='quality'?['low_audio']:[],...(kind==='invalid'?{sha256:'0'.repeat(64)}:{})}));
- if(kind==='uncertain'||kind==='reject')a.evaluate.mockResolvedValue({...accept,decision:{...accept.decision!,decision:kind==='reject'?'reject':'review'}});
- const [j]=await processSession(db,s,a);expect(j.state).toBe(kind==='invalid'?'invalid_output':kind==='reject'?'rejected':'review');expect(a.publisher.host).not.toHaveBeenCalled();
+it("flows from an authorized recording into the publisher exactly once", async () => {
+  enable(db, s.session, s.source, "test", 1, true);
+  const a = adapters();
+  expect((await processSession(db, s, a))[0].state).toBe("published");
+  await processSession(db, s, a);
+  expect(a.publisher.provider.create).toHaveBeenCalledTimes(1);
+  expect(a.render).toHaveBeenCalledTimes(1);
 });
-it('retries evaluation from saved artifacts after local provider failure',async()=>{
- const a=adapters();a.evaluate.mockResolvedValueOnce({provider:'ollama',model:'offline',error:'unreachable'});const [j]=await processSession(db,s,a);
- expect(j.state).toBe('review');expect(j.result).toBeTruthy();
- enable(db,s.session,s.source,'test',1,true);expect((await processJob(db,String(j.id),a,true)).state).toBe('published');
- expect(a.render).toHaveBeenCalledTimes(1);
+it.each([
+  "quality",
+  "rights",
+  "fixture",
+  "disabled",
+  "uncertain",
+  "reject",
+  "invalid",
+])("routes %s locally", async (kind) => {
+  const a = adapters();
+  if (kind !== "disabled" && kind !== "rights")
+    enable(db, s.session, s.source, "test", 1, true);
+  s.rights = kind !== "rights";
+  s.fixture = kind === "fixture";
+  if (kind === "quality" || kind === "invalid")
+    a.render.mockImplementation(async (r) => ({
+      ...(await fixtureResult(r)),
+      qualityFlags: kind === "quality" ? ["low_audio"] : [],
+      ...(kind === "invalid" ? { sha256: "0".repeat(64) } : {}),
+    }));
+  if (kind === "uncertain" || kind === "reject")
+    a.evaluate.mockResolvedValue({
+      ...accept,
+      decision: {
+        ...accept.decision!,
+        decision: kind === "reject" ? "reject" : "review",
+      },
+    });
+  const [j] = await processSession(db, s, a);
+  expect(j.state).toBe(
+    kind === "invalid"
+      ? "invalid_output"
+      : kind === "reject"
+        ? "rejected"
+        : "review",
+  );
+  expect(a.publisher.host).not.toHaveBeenCalled();
+});
+it("retries evaluation from saved artifacts after local provider failure", async () => {
+  const a = adapters();
+  a.evaluate.mockResolvedValueOnce({
+    provider: "ollama",
+    model: "offline",
+    error: "unreachable",
+  });
+  const [j] = await processSession(db, s, a);
+  expect(j.state).toBe("review");
+  expect(j.result).toBeTruthy();
+  enable(db, s.session, s.source, "test", 1, true);
+  expect((await processJob(db, String(j.id), a, true)).state).toBe("published");
+  expect(a.render).toHaveBeenCalledTimes(1);
 });
