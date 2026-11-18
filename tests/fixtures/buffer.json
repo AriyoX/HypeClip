@@ -1,0 +1,26 @@
+{
+  "channel": {
+    "id": "test",
+    "name": "fixture",
+    "service": "tiktok",
+    "organizationId": "org",
+    "isLocked": false,
+    "isDisconnected": false,
+    "isQueuePaused": false,
+    "allowedActions": [
+      "scheduleUpdates"
+    ]
+  },
+  "post": {
+    "id": "post-1",
+    "channelId": "test",
+    "status": "sent",
+    "schedulingType": "automatic",
+    "notificationStatus": null,
+    "sentAt": "2026-01-01T15:00:00Z",
+    "externalLink": "https://example.invalid/post",
+    "error": null,
+    "text": "caption",
+    "assets": []
+  }
+}
