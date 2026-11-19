@@ -10,7 +10,8 @@
   "scripts": {
     "hypeclip": "node --experimental-strip-types cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:local": "node --experimental-strip-types scripts/verify-local.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1171.0",
