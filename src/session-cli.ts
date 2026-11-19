@@ -159,12 +159,22 @@ export function sessionCommands(cli: Command) {
     .requiredOption("--source <recording>")
     .requiredOption("--channel <id>")
     .requiredOption("--cap <count>", "Maximum intents per session", integer)
+    .addOption(
+      new Option("--mode <mode>")
+        .choices(["addToQueue", "shareNow"])
+        .default("addToQueue"),
+    )
     .option("--rights", "Confirm source and publication rights")
     .action((o) => {
       const db = openDb()!;
       try {
-        enable(db, o.session, o.source, o.channel, o.cap, !!o.rights);
-        print({ enabled: o.session, channel: o.channel, cap: o.cap });
+        enable(db, o.session, o.source, o.channel, o.cap, !!o.rights, o.mode);
+        print({
+          enabled: o.session,
+          channel: o.channel,
+          cap: o.cap,
+          mode: o.mode,
+        });
       } finally {
         db.close();
       }

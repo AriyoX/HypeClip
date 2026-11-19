@@ -10,6 +10,7 @@ import type { Request, Result } from "./worker.ts";
 import { evaluate } from "./evaluator.ts";
 import { probe } from "./probe.ts";
 import type { Intent } from "./publisher.ts";
+import type { Mode } from "./buffer.ts";
 import { publish, liveAdapter, reconcile } from "./publisher.ts";
 import { safeMessage, stateDir, fixturePath } from "./local.ts";
 export const runtime = { render, evaluate, publisher: liveAdapter };
@@ -38,6 +39,7 @@ export function enable(
   channel: string,
   cap: number,
   rights: boolean,
+  mode: Mode = "addToQueue",
 ) {
   source = realpathSync(source);
   if (
@@ -58,8 +60,8 @@ export function enable(
       .get(channel);
     if (other) throw Error("Disable the previous destination first");
     db.prepare(
-      "INSERT INTO policy VALUES(?,?,?,?) ON CONFLICT(session) DO UPDATE SET source=excluded.source,channel=excluded.channel,cap=excluded.cap",
-    ).run(session, source, channel, cap);
+      "INSERT INTO policy(session,source,channel,cap,mode) VALUES(?,?,?,?,?) ON CONFLICT(session) DO UPDATE SET source=excluded.source,channel=excluded.channel,cap=excluded.cap,mode=excluded.mode",
+    ).run(session, source, channel, cap, mode);
   });
 }
 function snapshot(db: DatabaseSync, id: string) {
@@ -213,7 +215,7 @@ export async function processJob(
       );
     } else {
       const policy = db
-        .prepare("SELECT channel FROM policy WHERE session=? AND source=?")
+        .prepare("SELECT channel,mode FROM policy WHERE session=? AND source=?")
         .get(job.session, job.source);
       if (
         details.fixture ||
@@ -239,7 +241,7 @@ export async function processJob(
             highlight: id,
             caption: decision.suggestedCaption,
             channel: String(policy.channel),
-            mode: "addToQueue",
+            mode: policy.mode as Mode,
             live: true,
             auto: { session: String(job.session), source: String(job.source) },
           },
@@ -324,7 +326,7 @@ export async function processSession(
         endMs: spike.endMs,
         outputDir: join(stateDir(), "clips", id),
       },
-      output: { width: 720, height: 1280, layout: s.layout },
+      output: { width: 1080, height: 1920, layout: s.layout },
     };
     const details: Details = {
       request,

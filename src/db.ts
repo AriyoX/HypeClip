@@ -14,8 +14,8 @@ export function openDb(readOnly = false) {
     );
     atomic(db, () => {
       const v = db.prepare("PRAGMA user_version").get()!.user_version;
-      if (Number(v) > 4) throw Error("Unknown database version");
-      for (const n of [1, 2, 3, 4])
+      if (Number(v) > 5) throw Error("Unknown database version");
+      for (const n of [1, 2, 3, 4, 5])
         if (Number(v) < n)
           db.exec(
             readFileSync(

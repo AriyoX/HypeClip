@@ -19,6 +19,7 @@ import { openDb } from "../src/db.ts";
 import { fixtureResult } from "../src/demo.ts";
 import type { Evaluation } from "../src/evaluator.ts";
 import { jsonFile } from "../src/local.ts";
+import { buffer } from "../src/buffer.ts";
 const fixture = jsonFile("tests/fixtures/buffer.json");
 const accept: Evaluation = {
   provider: "ollama",
@@ -81,6 +82,7 @@ beforeEach(() => {
 afterEach(() => {
   db.close();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   rmSync(dir, { force: true, recursive: true });
 });
 it("flows from an authorized recording into the publisher exactly once", async () => {
@@ -128,7 +130,52 @@ it.each([
         : "review",
   );
   expect(a.publisher.host).not.toHaveBeenCalled();
+  expect(a.publisher.provider.create).not.toHaveBeenCalled();
 });
+it.each([
+  "missing token",
+  "invalid token",
+  "missing model",
+  "invalid model output",
+])(
+  "preserves media and blocks upload with %s in an enabled session",
+  async (kind) => {
+    enable(db, s.session, s.source, "test", 1, true);
+    const a = adapters();
+    const fetchMock = vi.fn(async () =>
+      kind === "invalid model output"
+        ? Response.json({
+            done: true,
+            message: { content: '{"decision":"accept","score":110}' },
+          })
+        : new Response(null, { status: kind === "missing model" ? 404 : 401 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    if (kind.endsWith("token")) {
+      vi.stubEnv(
+        "BUFFER_ACCESS_TOKEN",
+        kind === "missing token" ? "" : "example-token",
+      );
+      a.publisher.provider.channel = () => buffer.channel("test");
+    } else {
+      vi.stubEnv("OLLAMA_MODEL", "controlled-test:local");
+      vi.stubEnv("OLLAMA_BASE_URL", "http://127.0.0.1:11434");
+    }
+    const [job] = await processSession(
+      db,
+      s,
+      kind.endsWith("token") ? a : { ...a, evaluate: runtime.evaluate },
+    );
+    expect(job.state).toBe("review");
+    expect(job.reason).toBeTruthy();
+    const result = JSON.parse(String(job.result));
+    expect(readFileSync(result.verticalPath).length).toBeGreaterThan(0);
+    expect(readFileSync(result.subtitlePath).length).toBeGreaterThan(0);
+    expect(a.publisher.host).not.toHaveBeenCalled();
+    expect(a.publisher.provider.create).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(kind === "missing token" ? 0 : 1);
+  },
+);
 it("retries evaluation from saved artifacts after local provider failure", async () => {
   const a = adapters();
   a.evaluate.mockResolvedValueOnce({

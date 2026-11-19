@@ -38,6 +38,11 @@ type Options = {
 };
 // Known public test assets remain local even when copied out of their fixture directory.
 async function knownFixture(hash: string) {
+  // Keep copies of the original 720p demo local after upgrading a worktree.
+  if (
+    hash === "5c68b9adedf2ca0eb2617ec822b573393a7faf7d689f85b3bee3c9c877ed3c86"
+  )
+    return true;
   for (const name of ["portrait.mp4", "cut-vertical.mp4"]) {
     if (
       hash ===

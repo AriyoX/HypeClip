@@ -2,6 +2,20 @@ import { expect, it } from "vitest";
 import { detect, readChat } from "../src/detector.ts";
 const chat = readChat("tests/fixtures/chat.jsonl"),
   t = { mediaStart: "2026-01-01T00:00:00Z", durationMs: 95000 };
+it("learns an already-busy audience and detects a later rise above its usual variation", () => {
+  const bucket = (index: number, count: number) =>
+    Array.from({ length: count }, (_, user) => ({
+      ...chat[0],
+      userId: String(user),
+      eventId: index + "-" + user,
+      eventAt: new Date(Date.parse(t.mediaStart) + index * 5000).toISOString(),
+    }));
+  const busy = Array.from({ length: 12 }, (_, i) => bucket(i, 50)).flat();
+  expect(detect(busy, t)).toEqual([]);
+  expect(detect([...busy, ...bucket(12, 72)], t)).toMatchObject([
+    { peakMs: 60000 },
+  ]);
+});
 it("maps event time to source time, subtracts reaction delay and pads the event", () => {
   expect(detect(chat, t)[0]).toMatchObject({
     peakMs: 60000,

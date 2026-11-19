@@ -82,11 +82,26 @@ export function detect(messages: Chat[], timing: z.input<typeof Timing>) {
       users.set(m.userId, count + 1);
       return count < userCap;
     });
-    let prior = 0;
-    for (let k = 1; k <= baselineBuckets; k++)
-      prior += counts.get(key - k) ?? 0;
-    const baseline = prior / Math.min(baselineBuckets, Math.max(1, key));
+    const history = Array.from(
+      { length: Math.min(baselineBuckets, key) },
+      (_, k) => counts.get(key - k - 1) ?? 0,
+    );
+    // The first five seconds can already contain a busy audience.
+    const baseline = history.length
+      ? history.reduce((sum, count) => sum + count, 0) / history.length
+      : capped.length;
     counts.set(key, capped.length);
+    const excess = capped.length - Math.max(1, baseline);
+    const relativeRise = excess / Math.max(2, baseline);
+    // In a large audience, even a significant rise may be a small percentage.
+    // Compare with recent variation once there is enough observed history.
+    let standardizedRise = 0;
+    if (history.length >= 6 && baseline >= 10) {
+      const variance =
+        history.reduce((sum, count) => sum + (count - baseline) ** 2, 0) /
+        history.length;
+      standardizedRise = excess / Math.sqrt(Math.max(baseline, variance)) - 1;
+    }
     const reactions = capped.filter(
       (m) =>
         m.emotes.length ||
@@ -96,14 +111,7 @@ export function detect(messages: Chat[], timing: z.input<typeof Timing>) {
     ).length;
     const contributions = {
       velocity: Math.round(
-        Math.min(
-          50,
-          Math.max(
-            0,
-            ((capped.length - Math.max(1, baseline)) / Math.max(2, baseline)) *
-              12,
-          ),
-        ),
+        Math.min(50, Math.max(0, relativeRise, standardizedRise) * 12),
       ),
       distinct: Math.min(30, users.size * 5),
       reactions: Math.min(20, reactions * 4),
