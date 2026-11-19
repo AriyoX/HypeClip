@@ -126,4 +126,20 @@ Sol owns `media/`, `workers/`, their fixtures and tests. The shared boundary was
 
 Use `pnpm hypeclip demo --worker` to select the real worker explicitly. Tests use a fixture-based Buffer adapter and mocked provider responses. Live publication verification requires configured credentials, an operator-selected real clip and a confirmed destination.
 
+### Laptop verification
+
+Sol's worker commit `f3da9ce` was merged at `07748a3`. From the merged checkout, the TypeScript typecheck passed, Vitest passed 40 tests and the Python worker passed 7 tests. A fresh `pnpm hypeclip demo` rendered a 720×1280 H.264 video lasting 55 seconds. Its SHA-256 matched the result file. Local Whisper placed the spoken line at 28.270–31.290 seconds on the clip timeline. Local Ollama returned `accept` with score 92. The fixture stayed in review.
+
+For the before-stream-end check, two PowerShell terminals ran the receiver and sender below. The sender replayed the synthetic fixture at four times real time. Configure the FFmpeg path from the worker setup first and use a fresh session ID on subsequent runs.
+
+```powershell
+pnpm hypeclip live --session loopback-speech-check --port 24762 --chat tests/fixtures/chat.jsonl --media-start 2026-01-01T00:00:00Z --rights --once
+```
+
+```powershell
+& $env:HYPECLIP_FFMPEG -hide_banner -loglevel error -readrate 4 -stream_loop -1 -i tests/fixtures/recording.mp4 -t 240 -r 12 -g 24 -bf 0 -c:v libx264 -c:a aac -muxdelay 0 -f mpegts 'udp://127.0.0.1:24762?pkt_size=1316'
+```
+
+The receiver reported 90,046 ms of finalized media and `inputStillRunning: true` when it returned the transcribed clip. A separate video-only run produced `missing_audio` and went to review. Both used replayed chat. Live Twitch collection, public R2 delivery and Buffer publication still require verification with a configured account. The local status check showed zero publish intents and zero enabled auto-publish sessions.
+
 Provider specifications used for implementation include [Buffer video posts](https://developers.buffer.com/examples/create-video-post.html), [media hosting](https://developers.buffer.com/guides/hosting-media.html), the [Buffer schema](https://developers.buffer.com/reference.html), [Twitch chat](https://dev.twitch.tv/docs/chat/send-receive-messages/), [EventSub reconnects](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/), [Ollama model inventory](https://docs.ollama.com/api/tags) and [structured outputs](https://docs.ollama.com/capabilities/structured-outputs).
