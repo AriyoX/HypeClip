@@ -277,7 +277,8 @@ export async function dashboard(
     const id = String(row.id),
       cfg = JSON.parse(String(row.config));
     if (!cfg.home) {
-      cfg.home = join(root(), "runs", id, randomUUID());
+      // The run already has a unique ID. Keep worker paths short on Windows.
+      cfg.home = join(root(), "runs", randomUUID());
       cfg.exports = join(storage.status().folder, basename(cfg.home));
       db.prepare("UPDATE sources SET config=? WHERE id=?").run(
         JSON.stringify(cfg),
