@@ -31,9 +31,14 @@ import {
 import { previewSource } from "./source-preview.ts";
 import { ChannelEdit } from "./editorial.ts";
 import { EditSettings } from "./review-export.ts";
-import { buffer } from "./buffer.ts";
 import { providerStatus } from "./providers.ts";
 import { localModel, safeMessage, writeJson } from "./local.ts";
+import { dashboardPublishing } from "./dashboard-publishing.ts";
+import {
+  dashboardActivity,
+  newActivity,
+  trackActivity,
+} from "./dashboard-activity.ts";
 
 const repo = fileURLToPath(new URL("../", import.meta.url));
 const root = () => join(sharedHome(), "studio");
@@ -43,6 +48,7 @@ type Task = {
   reason: string;
   updated: number;
   child?: ChildProcess;
+  activity?: ReturnType<typeof newActivity>;
 };
 type Export = ReturnType<typeof exportDetails>;
 function publicClip(c: Export) {
@@ -56,9 +62,10 @@ function publicClip(c: Export) {
     platform: i.source.platform,
     sourceUrl: i.source.broadcastUrl ?? i.source.url,
     broadcast: i.source.broadcastId ?? i.source.file ?? i.source.url,
-    eventTime: i.selection?.eventMs == null ? null :
-      (i.source.archiveOffsetMs ?? 0) + i.selection.eventMs,
-    evidenceTrace: i.evidenceTrace,
+    eventTime:
+      i.selection?.eventMs == null
+        ? null
+        : (i.source.archiveOffsetMs ?? 0) + i.selection.eventMs,
     sourceStart: i.archiveFromMs ?? i.fromMs,
     sourceEnd: i.archiveToMs ?? i.toMs,
     fromMs: i.fromMs,
@@ -73,13 +80,10 @@ function publicClip(c: Export) {
       i.validatedDecision ?? i.evaluation?.decision?.decision ?? "review",
     model:
       i.actualModel ?? (i.evaluation?.decision ? i.evaluation?.model : null),
-    modelResponse: i.modelResponse,
-    raw: c.raw,
     reason: i.validationReason ?? i.rationale,
     settings: c.settings,
     splitScreen: i.splitScreen,
     selection: i.selection,
-    chat: i.chat,
     mode: i.mode,
     boundary: i.boundary,
     override: i.manualEdit ?? i.override,
@@ -159,10 +163,15 @@ export async function dashboard(port: number) {
   const providers = await providerStatus(),
     active = new Map<string, Task>(),
     inspected = new Map<string, CheckedSource>();
+  const publishing = dashboardPublishing();
+  const secrets = Object.entries(process.env)
+    .filter(([key]) => /TOKEN|SECRET|PASSWORD|ACCESS_KEY|API_KEY/i.test(key))
+    .flatMap(([, value]) => (value?.trim() ? [value.trim()] : []));
+  const watchlist = watchRows();
   const previews = new Map<string, Export>(),
     rendering = new Map<string, Task>(),
     cache = new Map<string, Export>();
-  let roster = watchRows().map((r) => ({
+  let roster = watchlist.map((r) => ({
     name: r.name,
     pinned: r.pinned,
     english: r.english,
@@ -215,23 +224,6 @@ export async function dashboard(port: number) {
       Date.now(),
     );
   }
-  const jobsFor = (home: string) => {
-    const path = join(home, "jobs.sqlite");
-    if (!home || !existsSync(path)) return [];
-    const jobs = new DatabaseSync(path, { readOnly: true });
-    try {
-      jobs.exec("PRAGMA busy_timeout=1000");
-      return jobs
-        .prepare(
-          `SELECT id,state,reason FROM jobs WHERE result IS NULL UNION ALL SELECT id,'Waiting for post-roll',reason FROM live_windows WHERE state='waiting'`,
-        )
-        .all();
-    } catch {
-      return [];
-    } finally {
-      jobs.close();
-    }
-  };
   function launch(row: ReturnType<typeof listSources>[number]) {
     const id = String(row.id),
       cfg = JSON.parse(String(row.config));
@@ -254,7 +246,13 @@ export async function dashboard(port: number) {
       env: { ...process.env, HYPECLIP_HOME: cfg.home },
       stdio: ["ignore", "ignore", "ignore", "ipc"],
     });
-    const task = { state: "Starting", reason: "", updated: Date.now(), child };
+    const task = {
+      state: "Starting",
+      reason: "",
+      updated: Date.now(),
+      child,
+      activity: newActivity(),
+    };
     active.set(id, task);
     setState(id, task.state);
     let finished = false;
@@ -265,6 +263,7 @@ export async function dashboard(port: number) {
     };
     child.on("message", (msg: any) => {
       if (!msg || !msg.event) return;
+      trackActivity(task.activity, msg, cfg.home, cfg.source);
       const label =
         msg.event === "stage-start"
           ? (msg.phase ?? stages[msg.stage])
@@ -291,9 +290,17 @@ export async function dashboard(port: number) {
       if (label) {
         task.state = label;
         task.updated = Date.now();
-        task.reason = String(
-          msg.reason ?? msg.error ?? (msg.event === "source" ? msg.media : ""),
-        );
+        task.reason =
+          msg.event === "complete" &&
+          [...task.activity.streams.values()].some(
+            (s) => s.state === "No highlight found",
+          )
+            ? "No highlight found in this scan"
+            : String(
+                msg.reason ??
+                  msg.error ??
+                  (msg.event === "source" ? msg.media : ""),
+              );
         setState(id, label, task.reason);
       }
       if (["complete", "stopped", "failed"].includes(msg.event)) {
@@ -349,19 +356,26 @@ export async function dashboard(port: number) {
     const errors: string[] = [],
       clips = [];
     for (const row of db
-      .prepare("SELECT id FROM exports ORDER BY added DESC")
+      .prepare("SELECT id,added FROM exports ORDER BY added DESC,rowid DESC")
       .all()) {
       try {
         const c = publicClip(clip(String(row.id)));
+        if (!existsSync(c.path) || !statSync(c.path).size)
+          throw Error("Missing video for " + c.name);
         const review = db
           .prepare("SELECT decision FROM reviews WHERE id=?")
           .get(c.id);
-        clips.push({ ...c, review: review?.decision });
+        clips.push({
+          ...c,
+          review: review?.decision,
+          added: Number(row.added),
+        });
       } catch (e) {
         errors.push(safeMessage(e));
       }
     }
-    const sources = listSources().map((row) => {
+    const savedSources = listSources();
+    const sources = savedSources.map((row) => {
       const cfg = JSON.parse(String(row.config));
       return {
         id: row.id,
@@ -373,12 +387,15 @@ export async function dashboard(port: number) {
         reason: row.reason,
         updated: row.updated,
         form: cfg.source.form,
-        jobs: active.has(String(row.id)) ? jobsFor(cfg.home) : [],
+        ...dashboardActivity(
+          active.has(String(row.id)) ? cfg.home : "",
+          active.get(String(row.id))?.activity,
+        ),
       };
     });
     const slots = captureStatus();
     const managedHomes = new Set(
-      listSources().map((r) => JSON.parse(String(r.config)).home),
+      savedSources.map((r) => JSON.parse(String(r.config)).home),
     );
     for (const slot of slots.active) {
       if (!managedHomes.has(slot.home))
@@ -392,13 +409,18 @@ export async function dashboard(port: number) {
           reason: "Command-line monitor",
           updated: slot.started,
           form: { kind: "external" },
-          jobs: jobsFor(slot.home),
+          ...dashboardActivity(slot.home, undefined, slot.source),
         });
     }
     return {
       sources,
       clips,
-      slots,
+      slots: { limit: slots.limit, used: slots.active.length },
+      watchlist: watchlist.map(({ name, pinned, channels }) => ({
+        name,
+        pinned,
+        channels: channels.map(({ url, platform }) => ({ url, platform })),
+      })),
       roster: roster.map((r) => ({
         ...r,
         state: !sources.some((s) => s.id === "watchlist" && s.enabled)
@@ -418,17 +440,7 @@ export async function dashboard(port: number) {
         updated: v.updated,
       })),
       model: localModel().model || "Unconfigured",
-      publishing: false,
-      buffer: !!(
-        process.env.BUFFER_ACCESS_TOKEN && process.env.BUFFER_CHANNEL_ID
-      ),
-      r2: [
-        "ACCOUNT_ID",
-        "BUCKET",
-        "ACCESS_KEY_ID",
-        "SECRET_ACCESS_KEY",
-        "PUBLIC_URL",
-      ].every((k) => !!process.env["HYPECLIP_R2_" + k]),
+      publishing: publishing.status(),
     };
   }
   const server = createServer(async (req, res) => {
@@ -437,7 +449,14 @@ export async function dashboard(port: number) {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
       });
-      res.end(JSON.stringify(data));
+      res.end(
+        JSON.stringify(data, (_key, value) => {
+          if (typeof value !== "string") return value;
+          for (const secret of secrets)
+            value = value.split(secret).join("[redacted]");
+          return value;
+        }),
+      );
     };
     try {
       if (!hosts.has(req.headers.host ?? "")) {
@@ -454,6 +473,18 @@ export async function dashboard(port: number) {
       if (req.method === "GET" || req.method === "HEAD") {
         if (path === "/api/state") {
           respond(await snapshot());
+          return;
+        }
+        const details = /^\/api\/clip-details\/([\w-]+)$/.exec(path);
+        if (details) {
+          const c = clip(details[1]);
+          respond({
+            model: c.info.actualModel ?? c.info.evaluation?.model,
+            raw: c.raw,
+            modelResponse: c.info.modelResponse,
+            evidenceTrace: c.info.evidenceTrace,
+            chat: c.info.chat,
+          });
           return;
         }
         const frame = /^\/source-frame\/([a-f0-9-]{36})$/.exec(path);
@@ -493,22 +524,25 @@ export async function dashboard(port: number) {
           );
           return;
         }
-        const assets: Record<string, string> = {
-          "/": "index.html",
-          "/app.js": "app.js",
-          "/style.css": "style.css",
+        const assets: Record<string, [string, string]> = {
+          "/": ["index.html", "text/html; charset=utf-8"],
+          "/app.js": ["app.js", "text/javascript; charset=utf-8"],
+          "/ui.js": ["ui.js", "text/javascript; charset=utf-8"],
+          "/publishing.js": ["publishing.js", "text/javascript; charset=utf-8"],
+          "/style.css": ["style.css", "text/css; charset=utf-8"],
+          "/fonts/barlow-condensed-700.woff2": [
+            "fonts/barlow-condensed-700.woff2",
+            "font/woff2",
+          ],
+          "/fonts/dm-sans.woff2": ["fonts/dm-sans.woff2", "font/woff2"],
         };
-        if (assets[path]) {
+        if (Object.hasOwn(assets, path)) {
+          const [file, type] = assets[path];
           res.writeHead(200, {
-            "Content-Type":
-              path === "/"
-                ? "text/html; charset=utf-8"
-                : path === "/app.js"
-                  ? "text/javascript; charset=utf-8"
-                  : "text/css; charset=utf-8",
+            "Content-Type": type,
             "Cache-Control": "no-cache",
           });
-          res.end(readFileSync(join(repo, "dashboard", assets[path])));
+          res.end(readFileSync(join(repo, "dashboard", file)));
           return;
         }
         respond({ error: "Unknown page" }, 404);
@@ -596,16 +630,13 @@ export async function dashboard(port: number) {
         return;
       }
       if (path === "/api/check-output") {
-        if (!process.env.BUFFER_CHANNEL_ID || !process.env.BUFFER_ACCESS_TOKEN)
-          throw Error(
-            "Set the optional Buffer token and TikTok channel ID in .env, then restart the dashboard.",
-          );
-        const channel = await buffer.channel(process.env.BUFFER_CHANNEL_ID);
-        respond({
-          name: channel.name,
-          connected: !channel.isDisconnected,
-          publishing: false,
-        });
+        await publishing.check();
+        respond(publishing.status());
+        return;
+      }
+      if (path === "/api/find-destinations") {
+        const channels = await publishing.find();
+        respond({ channels, publishing: publishing.status() });
         return;
       }
       if (path === "/api/limit") {

@@ -85,6 +85,30 @@ async function gql(query: string, variables: object) {
   if (!b.data) throw Error("Buffer returned no data");
   return b.data;
 }
+export async function bufferOrganizations() {
+  const data = await gql("query{account{organizations{id name}}}", {});
+  return z
+    .array(z.object({ id: z.string(), name: z.string() }))
+    .parse(data.account?.organizations);
+}
+
+export async function bufferTikTokChannels(organizationId: string) {
+  const data = await gql(
+    "query($input:ChannelsInput!){channels(input:$input){id name displayName service}}",
+    { input: { organizationId } },
+  );
+  return z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        displayName: z.string().nullish(),
+        service: z.string(),
+      }),
+    )
+    .parse(data.channels)
+    .filter((c) => c.service === "tiktok");
+}
 export function sameAsset(p: Post, i: Input) {
   return (
     p.channelId === i.channelId &&

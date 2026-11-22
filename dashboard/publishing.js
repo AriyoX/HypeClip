@@ -1,0 +1,292 @@
+import {
+  badge,
+  button,
+  codeBlock,
+  esc,
+  external,
+  info,
+  powershell,
+} from "./ui.js";
+
+const bufferStatus = {
+  missing: "Not configured",
+  unchecked: "Key entered · unverified",
+  verified: "Connected",
+  failed: "Couldn’t verify",
+};
+const destinationStatus = {
+  missing: "Not selected",
+  unchecked: "ID entered · unverified",
+  verified: "Verified",
+  disconnected: "Disconnected",
+  failed: "Couldn’t verify",
+};
+const r2Status = {
+  missing: "Missing",
+  present: "Entered · unverified",
+  invalid: "Check format",
+  "api-endpoint": "Use the public URL",
+};
+const r2Labels = [
+  "Account ID",
+  "Bucket name",
+  "Access key ID",
+  "Secret access key",
+  "Public media base URL",
+];
+
+function automaticLabel({ state, sessions }) {
+  if (state === "enabled")
+    return (
+      "On for " + sessions + (sessions === 1 ? " CLI session" : " CLI sessions")
+    );
+  if (state === "other-destination") return "Off for this destination";
+  if (state === "unavailable") return "CLI setting unavailable";
+  return "Off";
+}
+
+function setupNext(p) {
+  if (p.buffer === "missing")
+    return [
+      "buffer",
+      "Connect your TikTok account in Buffer and create an API key.",
+      "Connect Buffer",
+    ];
+  if (p.destination === "missing")
+    return [
+      "buffer",
+      "Find the intended TikTok channel and save its ID in .env.",
+      "Find your TikTok channel",
+    ];
+  if (p.destination === "disconnected")
+    return [
+      "buffer",
+      "Reconnect the selected TikTok account in Buffer, then check it again.",
+      "Check Buffer",
+    ];
+  if (p.buffer !== "verified" || p.destination !== "verified")
+    return [
+      "buffer",
+      "Check the Buffer key and confirm which TikTok account is selected.",
+      "Check Buffer",
+    ];
+  if (p.requirement) return ["buffer", p.requirement, "Review the destination"];
+  if (p.r2.some((item) => item.status !== "present"))
+    return [
+      "r2",
+      "Configure Cloudflare R2 so Buffer can fetch the MP4.",
+      "Configure R2",
+    ];
+  return [
+    "dry-run",
+    "Check anonymous access to an R2 object, then run the publishing dry run.",
+    "Try a dry run",
+  ];
+}
+
+export function publishingStatus(p, showR2 = false) {
+  const destination = p.name
+    ? esc(p.name) + (p.destination === "disconnected" ? " · Disconnected" : "")
+    : destinationStatus[p.destination];
+  const missingR2 = p.r2.filter((item) => item.status === "missing").length;
+  const r2 =
+    missingR2 === p.r2.length
+      ? "Not configured"
+      : missingR2
+        ? missingR2 + " settings missing"
+        : p.r2.some((item) => item.status !== "present")
+          ? "Check settings"
+          : "Entered · unverified";
+  return `<dl class="status-list">
+    <div><dt>Buffer connection</dt><dd>${bufferStatus[p.buffer]}</dd></div>
+    <div><dt>TikTok destination</dt><dd>${destination}</dd></div>
+    ${showR2 ? `<div><dt>R2 video delivery</dt><dd>${r2}</dd></div>` : ""}
+    <div><dt>Automatic posting</dt><dd>${badge(automaticLabel(p.automatic), p.automatic.state === "enabled" ? "warm" : "")}</dd></div>
+  </dl>`;
+}
+
+function postingAnswer(p) {
+  if (p.buffer === "verified" && p.automatic.state === "off")
+    return "Buffer is connected and publishing is off.";
+  if (p.automatic.state === "off") return "Automatic posting is off.";
+  return "Dashboard clips stay local.";
+}
+
+export function overviewPublishing(p) {
+  return `<div class="section-head"><h2>Publishing</h2>${info("Publishing")}</div>
+  ${publishingStatus(p)}
+  ${p.buffer === "verified" && p.automatic.state === "off" ? `<p class="publish-note">${postingAnswer(p)}</p>` : ""}
+  <a class="text-link" href="#publishing">Set up automatic TikTok posting <span aria-hidden="true">↗</span></a>`;
+}
+
+export function publishingSummary(p) {
+  const [step, next, link] = setupNext(p);
+  return `<section class="surface posting-answer">
+    <h2>Will my next clip be posted?</h2>
+    <p class="posting-verdict"><strong>No.</strong> ${postingAnswer(p)}</p>
+    <p>${esc(next)}</p>
+    <a class="button primary" href="#publishing/${step}">${link} <span aria-hidden="true">↓</span></a>
+  </section>
+  <section class="surface">
+    <div class="section-head"><h2>Publishing status</h2>${info("Publishing")}</div>
+    ${publishingStatus(p, true)}
+  </section>`;
+}
+
+function requirement(name, key, status) {
+  return `<div class="requirement">
+    <dt><strong>${name}</strong><code>${key}</code></dt>
+    <dd>${status}</dd>
+  </div>`;
+}
+
+export function publishingSteps(p, selectedStep, channels) {
+  const step = (id, number, label, status, content) =>
+    `<details class="setup-step surface" data-keep="${id}" id="setup-${id}"${id === selectedStep ? " open" : ""}>
+      <summary><span class="step-number" aria-hidden="true">${number}</span><span class="step-title">${label}</span>
+        <span class="step-status">${status}</span></summary>
+      <div class="step-content">${content}</div>
+    </details>`;
+  const r2Missing = p.r2.filter((item) => item.status === "missing").length;
+  const canCheck = p.buffer !== "missing" && p.destination !== "missing";
+  const buffer = step(
+    "buffer",
+    1,
+    "Connect TikTok through Buffer",
+    canCheck ? destinationStatus[p.destination] : "Setup required",
+    `
+    <ol class="instructions">
+      <li>Sign in to the TikTok account you want to post to. In Buffer, open <strong>Channels</strong>, choose <strong>Connect New Channel → TikTok</strong>, and authorize that account.</li>
+      <li>In Buffer’s <strong>Settings → API</strong>, create a personal API key and save it as <code>BUFFER_ACCESS_TOKEN</code>. HypeClip uses it to authenticate to Buffer.</li>
+      <li><a href="#publishing/windows">Save the key in .env and restart</a>. Use <strong>Find TikTok channels</strong>, match the account and organization, then copy its ID into <code>BUFFER_CHANNEL_ID</code>. That ID selects the account to receive clips. Restart after saving it.</li>
+    </ol>
+    <dl class="requirements">
+      ${requirement("Buffer API key", "BUFFER_ACCESS_TOKEN", bufferStatus[p.buffer])}
+      ${requirement("TikTok channel ID", "BUFFER_CHANNEL_ID", destinationStatus[p.destination])}
+    </dl>
+    ${p.name ? `<p class="account-name">Selected TikTok account <strong>${esc(p.name)}</strong></p>` : ""}
+    ${p.requirement ? `<p class="message">${esc(p.requirement)}</p>` : ""}
+    <div class="actions">
+      ${button("Find TikTok channels", "find-destinations", "", "", p.buffer === "missing")}${info("Find TikTok channels")}
+      ${button("Check Buffer connection", "check-output", "", "", !canCheck)}${info("Check Buffer connection")}
+    </div>
+    ${
+      channels
+        ? `<div class="found-channels">${
+            channels.length
+              ? channels
+                  .map(
+                    (c) =>
+                      `<div class="channel-result"><div><strong>${esc(c.name)}</strong><span>${esc(c.organization)}</span></div>${button("Copy channel ID", "copy-channel", c.id)}</div>`,
+                  )
+                  .join("")
+              : "<p>Buffer returned no TikTok channels. Connect the account and try again.</p>"
+          }</div>`
+        : ""
+    }
+    <div class="doc-links">
+      ${external("Buffer’s TikTok guide", "https://support.buffer.com/en-us/articles/using-tiktok-with-buffer-oGEroY9Of2")}
+      ${external("Buffer Channels", "https://publish.buffer.com/settings/channels")}
+      ${external("Buffer API settings", "https://publish.buffer.com/settings/api")}
+      ${external("Buffer channel lookup", "https://developers.buffer.com/examples/get-channels.html")}
+    </div>`,
+  );
+
+  const r2 = step(
+    "r2",
+    2,
+    "Set up R2 video delivery",
+    r2Missing ? r2Missing + " missing" : "Check public access",
+    `
+    <p>Buffer fetches the MP4 from a public HTTPS URL. HypeClip uploads only the finished clip during a live send.</p>
+    <ol class="instructions">
+      <li>In Cloudflare, open <strong>Storage &amp; databases → R2 → Overview</strong>. Create a dedicated bucket using the default jurisdiction. Copy its exact name and the Cloudflare account ID. You can find the ID using <strong>Copy account ID</strong> in dashboard search.</li>
+      <li>In R2 Overview, choose <strong>API Tokens → Manage</strong>. Create an account or user token with <strong>Object Read &amp; Write</strong> for this bucket only. Save the S3 <strong>Access Key ID</strong> and <strong>Secret Access Key</strong> from the confirmation page.</li>
+      <li>In the bucket’s <strong>Settings → Custom Domains</strong>, add a public HTTPS domain. Use its base URL, such as <code>https://clips.example.com</code>. Cloudflare’s <code>r2.dev</code> URL is for development.</li>
+    </ol>
+    <div class="message">Use the <strong>public media URL</strong> for <code>HYPECLIP_R2_PUBLIC_URL</code>. HypeClip builds the S3 upload endpoint <code>https://&lt;ACCOUNT_ID&gt;.r2.cloudflarestorage.com</code> from the account ID. Objects on the public domain can be read without signing in.</div>
+    <dl class="requirements">
+      ${p.r2.map(({ key, status }, i) => requirement(r2Labels[i], key, r2Status[status])).join("")}
+    </dl>
+    <p>After saving and restarting, open an existing object’s public URL in a private browser window. During a live send, HypeClip checks that the final MP4 can be fetched anonymously and matches the original bytes.</p>
+    <div class="doc-links">
+      ${external("Find the account ID", "https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/#copy-your-account-id")}
+      ${external("Create an R2 bucket", "https://developers.cloudflare.com/r2/buckets/create-buckets/")}
+      ${external("Create bucket-scoped keys", "https://developers.cloudflare.com/r2/get-started/s3/#2-generate-api-credentials")}
+      ${external("Set up a public domain", "https://developers.cloudflare.com/r2/buckets/public-buckets/#connect-a-bucket-to-a-custom-domain")}
+      ${external("Buffer media requirements", "https://developers.buffer.com/guides/hosting-media.html")}
+    </div>`,
+  );
+
+  const envTemplate = [
+    "BUFFER_ACCESS_TOKEN=<your-buffer-api-key>",
+    "BUFFER_CHANNEL_ID=<your-tiktok-channel-id>",
+    "HYPECLIP_R2_ACCOUNT_ID=<your-cloudflare-account-id>",
+    "HYPECLIP_R2_BUCKET=<your-bucket-name>",
+    "HYPECLIP_R2_ACCESS_KEY_ID=<your-s3-access-key-id>",
+    "HYPECLIP_R2_SECRET_ACCESS_KEY=<your-s3-secret-access-key>",
+    "HYPECLIP_R2_PUBLIC_URL=<https://your-public-media-domain>",
+    "# HYPECLIP_CHANNEL_REQUIREMENTS=Manual privacy or commercial disclosure required",
+  ].join("\n");
+  const ps = (args) => powershell(p.envPath, args);
+  const windows = step(
+    "windows",
+    3,
+    "Save settings on Windows",
+    ".env",
+    `
+    <p>Open or create <code class="path">${esc(p.envPath)}</code> in Notepad. Update these lines, replacing each placeholder. Save the file as <code>.env</code> and leave your other settings in place.</p>
+    ${codeBlock(envTemplate, "Copy .env template")}
+    <p>Keep the key values in this local file. HypeClip reads it at startup. A value already set in PowerShell takes precedence.</p>
+    <p>Press <kbd>Ctrl+C</kbd> in the terminal running HypeClip to stop the dashboard, then launch it again.</p>
+    ${codeBlock(ps("dashboard"), "Copy restart command")}`,
+  );
+  const dryRun = step(
+    "dry-run",
+    4,
+    "Try a publishing dry run",
+    "PowerShell",
+    `
+    <p>Use a finished portrait MP4, a stable name for this highlight and a text file with the post caption. Replace the example paths and highlight name.</p>
+    ${codeBlock(ps(String.raw`publish --file 'C:\Clips\vertical.mp4' --highlight 'my-highlight-01' --caption-file 'C:\Clips\caption.txt' --dry-run`), "Copy dry-run command")}
+    <p>Read <code>state: dry_run</code> along with the portrait dimensions, duration, file hash, caption and Buffer result. <code>verified: false</code> and <code>reason</code> mean the destination lookup failed. A returned <code>name</code> identifies the TikTok account. <code>requirement: null</code> means HypeClip found no restriction in the channel check. Address any other reported requirement before enabling.</p>
+    <p>The dry run checks the MP4 and Buffer destination. It performs zero uploads and creates zero posts. R2 delivery still needs the public access check above.</p>`,
+  );
+  const enable = step(
+    "enable",
+    5,
+    "Turn automatic posting on or off",
+    "CLI sessions only",
+    `
+    <p>Run these commands in PowerShell for a specific recording and session. Dashboard monitoring and its clip library stay local.</p>
+    <dl class="rules">
+      <div><dt>Destination</dt><dd>${p.destination === "verified" ? esc(p.name) : "Use Check Buffer connection to confirm the TikTok account."} Copy the matching <code>BUFFER_CHANNEL_ID</code> into the command.</dd></div>
+      <div><dt>Eligible clips</dt><dd>The CLI needs a real recording, confirmed capture and posting rights, and a matching session policy. A clip needs a valid render, usable speech, a verified model’s acceptance and caption, and no review flags. The example caps posting at one and uses Buffer’s queue.</dd></div>
+      <div><dt>Clips marked Review</dt><dd>These are held for inspection. Marking a dashboard clip reviewed records that you checked it. For channel-specific approval, notification, privacy or commercial disclosure needs, set <code>HYPECLIP_CHANNEL_REQUIREMENTS</code> to hold the post for review.</dd></div>
+      <div><dt>Existing clips</dt><dd>Enabling a session does not send old clips. It can assign the destination to older unassigned Review jobs for that exact CLI session and recording. An explicit <code>evaluate &lt;id&gt;</code> retry can send one if it passes the same checks. A saved destination stays bound to the job.</dd></div>
+    </dl>
+    <p>Replace the recording path, session name and channel ID before running <code>auto-enable</code>. Use the same session and recording with <code>process</code>, plus your timestamped chat JSONL and the UTC time of the first video frame.</p>
+    ${codeBlock(
+      [
+        ps(
+          String.raw`auto-enable --session 'my-session' --source 'C:\Clips\recording.mp4' --channel 'TIKTOK_CHANNEL_ID' --cap 1 --mode addToQueue --rights`,
+        ),
+        ps(
+          String.raw`process --session 'my-session' --source 'C:\Clips\recording.mp4' --chat 'C:\Clips\chat.jsonl' --media-start 'YYYY-MM-DDTHH:MM:SSZ' --rights`,
+        ),
+      ].join("\n"),
+      "Copy enable and process commands",
+    )}
+    <p>Run <code>auto-off</code> to turn off all CLI sessions, or add <code>--session 'my-session'</code> to stop just that one. Check Buffer for posts already queued or in flight.</p>
+    ${codeBlock(ps("auto-off"), "Copy turn-off command")}`,
+  );
+  return buffer + r2 + windows + dryRun + enable;
+}
+
+export function publishingPage(config, step, channels) {
+  return `<div class="page-head"><div><h1>Set up automatic TikTok posting</h1>
+    <p>Watching streams, creating clips and downloading MP4s all work locally without a publishing account.</p>
+  </div></div>
+  <div class="overview-grid setup-summary" id="posting-summary">${publishingSummary(config)}</div>
+  <div class="setup-steps" id="setup-steps">${publishingSteps(config, step || setupNext(config)[0], channels)}</div>`;
+}

@@ -38,7 +38,9 @@ async function work() {
             await exportJob(id, task.exports, id);
           send({ event: "exported", id });
         })
-        .catch((e) => send({ event: "export-error", reason: safeMessage(e) }));
+        .catch((e) =>
+          send({ event: "export-error", id, reason: safeMessage(e) }),
+        );
     }
   };
   const s = task.source;

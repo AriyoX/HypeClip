@@ -1,13 +1,85 @@
-const $ = (s) => document.querySelector(s),
-  main = $("#main");
-const esc = (value) =>
-  String(value ?? "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ],
-  );
+import {
+  $,
+  badge,
+  button,
+  codeBlock,
+  esc,
+  external,
+  h,
+  info,
+  powershell,
+} from "./ui.js";
+import {
+  overviewPublishing,
+  publishingPage,
+  publishingSteps,
+  publishingSummary,
+} from "./publishing.js";
+
+const main = $("#main");
+const nav = {
+  overview: "Monitor",
+  sources: "Sources",
+  clips: "Clips",
+  publishing: "Publishing",
+  settings: "Settings",
+};
+const platforms = {
+  twitch: "Twitch",
+  youtube: "YouTube Live",
+  kick: "Kick",
+  tiktok: "TikTok LIVE",
+  local: "Local recording",
+  multi: "Watchlist",
+};
+const platformName = (value) => platforms[value] || value || "Watchlist";
+const help = {
+  "Monitor once":
+    "A live link can produce several clips. The run finishes when capture ends normally. If the stream is offline or capture fails, HypeClip can keep retrying until you press Stop. The full watchlist keeps checking for eligible streams until you stop it. A recording or archive interval is scanned once for up to one clip. Finished MP4s appear in Clips.",
+  "Choose a stream":
+    "Pick a watchlist channel or paste an HTTPS link from Twitch, YouTube Live, Kick or TikTok LIVE. You can also scan a local recording. Check the source and confirm you have permission to capture it before starting.",
+  "Check source":
+    "Looks up the stream or opens your local file so you can confirm the source, whether media is accessible, and what chat is available. Use Monitor once after you confirm permission.",
+  Watchlist:
+    "The ranked GTA VI watchlist checks for eligible English-language broadcasts and uses free capture slots. Choose a single channel to follow just that broadcast.",
+  "Capture limit":
+    "Maximum recordings running on this PC across the dashboard and HypeClip CLI. Other sources wait for a slot.",
+  "Media-only detection":
+    "When chat is unavailable, HypeClip looks for changes in audio level. The local tools check the moments it finds.",
+  "Chat import":
+    "Supply original timestamped chat as a JSONL file and the UTC time of the recording’s first frame. Leave both blank to look for highlights using audio.",
+  "Archive interval":
+    "Enter the start and length in minutes. Kick VOD links and Twitch video links are detected automatically. For other archive links, select Treat this link as an archive.",
+  "Qwen review":
+    "The local model checks timed speech and chat evidence. Review keeps the rendered MP4 for you to judge when the evidence is uncertain. The model does not see the video.",
+  "Auto layout":
+    "Checks source frames for a persistent facecam inset. A qualifying camera goes above gameplay. Uncertain and portrait footage uses one panel.",
+  "Scene caption":
+    "A temporary card supplies factual context before the payoff. Leave the text empty when the clip explains itself.",
+  "Dialogue subtitles":
+    "Uses saved speech timings for on-screen dialogue. Adjust subtitle height if the words cover the action.",
+  Publishing:
+    "Buffer connects the destination account. R2 makes the MP4 available to Buffer. Automatic posting is set per CLI session. Dashboard monitoring keeps clips local.",
+  "Find TikTok channels":
+    "Reads your Buffer account’s connected TikTok channels. Copy the matching channel ID into .env and restart HypeClip.",
+  "Check Buffer connection":
+    "Uses the key and channel ID in .env to look up the selected TikTok account and its scheduling permissions. This check creates zero posts.",
+  "Render preview":
+    "Applies the presentation settings using the saved clip’s speech timings. Play the preview, then choose Save version to keep the new MP4.",
+  Crop: "Enter x, y, width and height from 0 to 1, measured from the source frame’s upper-left corner.",
+  Narration:
+    "Off keeps the source audio alone. Auto can use a verified context line in a quiet gap when the viewer needs it.",
+};
+const field = (label, name, value = "", attrs = "") =>
+  `<label>${esc(label)}<input name="${name}" value="${esc(value)}" ${attrs}></label>`;
+const select = (label, name, options, value, hint = "") =>
+  `<div class="field"><label for="field-${name}">${esc(label)}</label> ${hint ? info(hint) : ""}
+    <select id="field-${name}" name="${name}">${options
+      .map(
+        ([id, text]) =>
+          `<option value="${esc(id)}"${value === id ? " selected" : ""}>${esc(text)}</option>`,
+      )
+      .join("")}</select></div>`;
 const time = (ms) => {
   const t = Math.floor(Math.max(0, ms || 0) / 1000);
   return (
@@ -18,86 +90,6 @@ const time = (ms) => {
     String(Math.round(ms || 0) % 1000).padStart(3, "0")
   );
 };
-const h = (tag, content, cls = "") =>
-  "<" +
-  tag +
-  (cls ? ' class="' + cls + '"' : "") +
-  ">" +
-  content +
-  "</" +
-  tag +
-  ">";
-const button = (label, act, id = "", cls = "") =>
-  '<button type="button" data-act="' +
-  act +
-  '" data-id="' +
-  esc(id) +
-  '" class="' +
-  cls +
-  '">' +
-  esc(label) +
-  "</button>";
-const badge = (s, cls = "") => h("span", esc(s), "badge " + cls);
-const help = {
-  Watchlist:
-    "Checks the ranked 20 creators, including pinned Kai Cenat and IShowSpeed. Only a currently eligible GTA VI broadcast with English-commentary evidence can occupy a slot.",
-  "Capture limit":
-    "Maximum recordings running on this PC across all dashboard tabs and HypeClip CLI clients. Other selected sources wait for a slot.",
-  "Media-only detection":
-    "Without synchronized chat, HypeClip looks for changes in the original audio level. Whisper and Qwen examine only the shortlisted moments.",
-  "Post-roll":
-    "The recorder keeps the footage after a trigger so a reaction or spoken payoff can finish. The job waits until those frames are available.",
-  "Qwen review":
-    "Local Qwen reads timed speech and audience evidence. Review keeps the MP4 for you to judge when the evidence is uncertain. Qwen does not see the video.",
-  "Auto layout":
-    "Checks several source frames for a persistent camera inset. A qualifying facecam goes above gameplay. Uncertain and portrait footage keeps one panel.",
-  "Scene caption":
-    "A temporary white card supplies factual context before the payoff. Leave the text empty when the clip explains itself.",
-  "Dialogue subtitles":
-    "Small, phrase-timed words from saved speech appear below the divider. Adjust height if they cover gameplay or the HUD.",
-  "Publishing connection":
-    "TikTok LIVE is an input. Buffer is a separate optional output. Connection credentials stay on the server. Local studio exports never post.",
-  Crop: "Enter x, y, width and height from 0 to 1, measured from the source frame’s upper-left corner. The phone preview uses the same FFmpeg render as the saved MP4.",
-  Narration:
-    "Off keeps the source audio alone. Auto can reuse an approved essential context line with Kokoro am_michael only in a documented quiet gap.",
-};
-const info = (s) =>
-  '<button type="button" class="info" data-help="' +
-  esc(s) +
-  '" aria-label="About ' +
-  esc(s) +
-  '">i</button>';
-const field = (label, name, value = "", attrs = "") =>
-  "<label>" +
-  esc(label) +
-  '<input name="' +
-  name +
-  '" value="' +
-  esc(value) +
-  '" ' +
-  attrs +
-  "></label>";
-const select = (label, name, options, value, i = "") =>
-  "<label>" +
-  esc(label) +
-  " " +
-  (i ? info(i) : "") +
-  '<select name="' +
-  name +
-  '">' +
-  options
-    .map(
-      ([v, t]) =>
-        '<option value="' +
-        v +
-        '"' +
-        (value === v ? " selected" : "") +
-        ">" +
-        esc(t) +
-        "</option>",
-    )
-    .join("") +
-  "</select></label>";
 const forms = {
   layout: [
     ["auto", "Auto"],
@@ -114,368 +106,509 @@ const forms = {
     ["auto", "Auto · am_michael"],
   ],
 };
+
 let state,
   page,
+  pageDetail,
   selected,
   compareId,
-  libraryFilter = "all",
-  sourceKind = "url",
   checked,
-  editor = false,
+  selectedSource,
   preview,
-  pending,
-  signature = "",
+  pending;
+let libraryFilter = "all",
+  sourceKind = "watchlist",
+  editor = false,
+  sourceRevision = 0,
   toastTimer,
-  selectedSource = null;
+  channels;
+const clipNow = () =>
+  state.clips.find((c) => c.id === selected) ?? state.clips[0];
+const duration = (c) => (c.duration / 1000).toFixed(1) + " s";
+const image = (c, cls = "") =>
+  `<img class="${cls}" alt="" loading="lazy" src="/media/${c.id}/poster">`;
+const verdict = (c) =>
+  c.review
+    ? "Reviewed"
+    : c.decision === "review"
+      ? "Ready for review"
+      : c.decision === "reject"
+        ? "Rejected"
+        : "Ready to play";
+const verdictBadge = (c) =>
+  badge(verdict(c), c.review ? "ok" : c.decision === "review" ? "warm" : "");
+const choose = (cls = "primary") =>
+  `<a class="button ${cls}" href="#sources/choose"><span aria-hidden="true">+</span> Choose a stream</a>`;
 const post = async (route, data) => {
   const r = await fetch("/api/" + route, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  const d = await r.json();
-  if (!r.ok) throw Error(d.error || "Request failed");
-  return d;
+  const result = await r.json();
+  if (!r.ok) throw Error(result.error || "Request failed");
+  return result;
 };
-const notify = (s) => {
+function notify(message) {
   clearTimeout(toastTimer);
-  $("#notice").textContent = s;
+  $("#notice").textContent = message;
   toastTimer = setTimeout(() => ($("#notice").textContent = ""), 6500);
-};
-const clipNow = () =>
-  state.clips.find((c) => c.id === selected) ?? state.clips[0];
-const image = (c, cls) =>
-  '<img class="' + cls + '" alt="" src="/media/' + c.id + '/poster">';
-const duration = (c) => (c.duration / 1000).toFixed(1) + " s";
-function route() {
+}
+function route(focus = false) {
   const [p, id, second] = location.hash.slice(1).split("/");
-  page = ["sources", "clips", "settings"].includes(p) ? p : "overview";
-  compareId = second;
-  if (id === "review") {
-    libraryFilter = "review";
-    selected = state.clips.find(
-      (c) => c.decision === "review" && !c.review,
-    )?.id;
-  } else {
-    selected = id || selected;
-    const target = state.clips.find((c) => c.id === id);
-    if (target && !matchesClipFilter(target)) libraryFilter = "all";
+  const nextPage = Object.hasOwn(nav, p) ? p : "overview";
+  if (page && (nextPage !== page || id !== pageDetail)) {
+    clearTimeout(toastTimer);
+    $("#notice").textContent = "";
+  }
+  page = nextPage;
+  pageDetail = id;
+  compareId = page === "clips" ? second : undefined;
+  if (page === "clips") {
+    if (id === "review") {
+      libraryFilter = "review";
+      selected = state.clips.find(matchesClipFilter)?.id;
+    } else {
+      if (id) selected = id;
+      const target = state.clips.find((c) => c.id === id);
+      if (target && !matchesClipFilter(target)) libraryFilter = "all";
+    }
   }
   editor = false;
   preview = pending = null;
   draw();
+  const section =
+    page === "publishing" && id
+      ? $("#setup-" + CSS.escape(id))
+      : page === "sources" && id === "chat"
+        ? $("#source-credentials")
+        : null;
+  if (section) {
+    const target = section.querySelector("summary") || section;
+    target.focus({ preventScroll: true });
+    section.scrollIntoView({ block: "start" });
+  } else if (focus) {
+    main.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
 }
 function openClip(id) {
   location.hash = "clips/" + id;
-  if (page === "clips" && selected === id) draw();
+  if (page === "clips" && selected === id && !compareId) draw();
 }
-function metrics() {
-  const tiles = [
-    ["Monitoring", state.sources.some((s) => s.enabled) ? "Running" : "Idle"],
-    [
-      "Capture slots",
-      state.slots.active.length + " <em>/ " + state.slots.limit + "</em>",
-    ],
-    [
-      "Queued jobs",
-      state.sources.reduce(
-        (n, s) =>
-          n +
-          s.jobs.filter((j) =>
-            ["queued", "waiting", "Waiting for post-roll"].includes(j.state),
-          ).length,
-        0,
-      ),
-    ],
-    [
-      "Needs review",
-      state.clips.filter((c) => c.decision === "review" && !c.review).length,
-    ],
-  ];
-  return (
-    '<div class="cards">' +
-    tiles
-      .map(
-        ([k, v]) =>
-          '<div class="metric"><div class="meta">' +
-          k +
-          " " +
-          (k === "Capture slots"
-            ? info("Capture limit")
-            : k === "Needs review"
-              ? info("Qwen review")
-              : "") +
-          '</div><div class="value">' +
-          (k === "Needs review" && v > 0
-            ? '<a href="#clips/review" aria-label="Open clips needing review">' +
-              v +
-              ' <span aria-hidden="true">↗</span></a>'
-            : v) +
-          "</div></div>",
-      )
-      .join("") +
-    "</div>"
-  );
+const activeSources = () =>
+  state.sources.filter((s) => s.enabled || s.jobs.length);
+const slotMeter =
+  () => `<span class="slot-pips" aria-hidden="true">${Array.from(
+    { length: state.slots.limit },
+    (_, i) => `<span class="${i < state.slots.used ? "used" : ""}"></span>`,
+  ).join("")}</span>
+  <strong>${state.slots.used} / ${state.slots.limit}</strong> capture slots ${info("Capture limit")}`;
+const fallbackState = (s) =>
+  ({
+    Starting: "Checking source",
+    Waiting:
+      s.form.kind === "watchlist"
+        ? "Looking for eligible streams"
+        : "Waiting for stream or capture slot",
+    Monitoring:
+      s.form.kind === "watchlist"
+        ? "Looking for eligible streams"
+        : "Connecting to stream",
+    Capturing: "Watching for highlights",
+    "Acquiring recording": "Downloading archive",
+    Shortlisted: "Processing a highlight",
+    Transcribing: "Creating subtitles",
+    Rendering: "Rendering video",
+    Evaluating: "Checking the highlight",
+    Exporting: "Saving clip",
+    "Export error": "Couldn’t save clip",
+  })[s.state] || s.state;
+
+function activityDetails(source) {
+  if (!source.reason && !source.logs.length && !source.jobs.length) return "";
+  return `<details class="activity-details" data-keep="${source.id}">
+    <summary>Technical details</summary>
+    ${source.reason ? h("p", esc(source.reason)) : ""}
+    <ul class="event-log">${source.jobs.map((j) => h("li", esc(j.state + " · " + j.id + (j.reason ? " · " + j.reason : "")))).join("")}
+    ${source.logs.map((log) => h("li", h("code", esc(log.event)) + " " + esc(log.detail))).join("")}</ul>
+  </details>`;
+}
+function streamRow(stream, jobs) {
+  return `<div class="stream-row">
+    <div class="stream-id"><span class="stream-icon" aria-hidden="true"></span><div><strong>${esc(stream.name)}</strong>
+      <span>${esc(platformName(stream.platform))}</span></div></div>
+    <div class="stream-status">
+      <strong><span class="state-dot ${stream.state === "Watching for highlights" ? "on" : ""}" aria-hidden="true"></span>${esc(stream.state)}</strong>
+      <span>${esc(stream.chat)}</span>
+      ${jobs.map((j) => `<span class="job"><span class="stage-ring" aria-hidden="true"></span>${esc(j.state)}</span>`).join("")}
+    </div>
+  </div>`;
 }
 function activity() {
-  const rows = state.sources.filter(
-    (s) => s.enabled || s.reason || s.state === "Finished",
-  );
-  const errors =
-    state.errors.map((e) => h("p", esc(e), "error")).join("") +
-    state.roster
-      .filter((r) => r.state === "Capturing")
-      .map((r) => h("p", esc(r.name) + " · Capturing", "meta"))
-      .join("");
-  return (
-    errors +
-    (rows.length
-      ? rows
-          .map(
-            (s) =>
-              '<div class="row"><div><strong>' +
-              esc(s.name) +
-              '</strong><div class="meta">' +
-              esc(s.reason) +
-              '</div></div><div class="end">' +
-              badge(s.state) +
-              ' <small data-elapsed="' +
-              s.updated +
-              '"></small></div></div>' +
-              s.jobs
-                .map(
-                  (j) =>
-                    '<div class="meta">' +
-                    esc(j.state) +
-                    " · " +
-                    esc(j.id) +
-                    "</div>",
+  const rows = activeSources();
+  const last = state.sources
+    .filter((s) => ["Finished", "Unavailable"].includes(s.state))
+    .sort((a, b) => b.updated - a.updated)[0];
+  if (!rows.length)
+    return `<section class="monitor-hero">
+    <div class="hero-content">
+      <h2>${state.clips.length || state.sources.length ? "No streams selected" : "Your first stream"}</h2>
+      <p>Pick from the watchlist or paste a stream link.</p>
+      <div class="actions">${choose()}${info("Choose a stream")}</div>
+    </div>
+    <div class="signal-art" aria-hidden="true">
+      <div class="radar"><i></i><i></i><i></i><i></i><span></span></div>
+      <div class="wave">${[8, 16, 25, 12, 43, 69, 30, 50, 86, 63, 24, 40, 12, 24, 7].map((n) => `<i style="--bar:${n}%"></i>`).join("")}</div>
+    </div>
+  </section>${
+    last
+      ? `<div class="run-receipt surface">
+    <strong>${esc(last.name)}</strong> · ${last.state === "Finished" ? "Finished" : "Source unavailable"}
+    ${last.reason === "No highlight found in this scan" ? h("p", esc(last.reason), "meta") : activityDetails(last)}
+  </div>`
+      : ""
+  }`;
+  return `<section class="surface active-panel">
+    <div class="section-head"><h2>Active sources</h2>${info("Media-only detection")}</div>
+    ${rows
+      .map((s) => {
+        const grouped = s.form.kind === "watchlist";
+        const current = s.streams.filter(
+          (stream) =>
+            !grouped ||
+            stream.state !== "Finished" ||
+            s.jobs.some((j) => j.stream === stream.id),
+        );
+        const unmatched = s.jobs.filter(
+          (j) => !current.some((stream) => j.stream === stream.id),
+        );
+        return `<div class="active-source">
+        ${grouped && current.length ? `<div class="active-heading"><strong>${esc(s.name)}</strong></div>` : ""}
+        ${
+          current.length
+            ? current
+                .map((stream) =>
+                  streamRow(
+                    stream,
+                    s.jobs.filter((j) => j.stream === stream.id),
+                  ),
                 )
-                .join(""),
-          )
-          .join("")
-      : '<p class="empty">No sources enabled.</p>')
-  );
+                .join("")
+            : streamRow(
+                {
+                  name: grouped ? "GTA VI watchlist" : s.name,
+                  platform: s.platform,
+                  state: fallbackState(s),
+                  chat: "Chat unverified",
+                },
+                unmatched,
+              )
+        }
+        ${current.length ? unmatched.map((j) => h("p", esc(j.state), "job")).join("") : ""}
+        <div class="active-actions">${activityDetails(s)}${s.enabled && s.form.kind !== "external" ? button("Stop", "stop", s.id, "quiet") : ""}</div>
+      </div>`;
+      })
+      .join("")}
+  </section>`;
+}
+function latestClips() {
+  const newest = state.clips.slice(0, 3);
+  const review = state.clips.filter(
+    (c) => c.decision === "review" && !c.review,
+  ).length;
+  return `<div class="section-head"><h2>Latest clips</h2>
+    ${
+      newest.length
+        ? `<div class="actions">
+      ${review ? `<a href="#clips/review">${review} to review</a>` : ""}
+      <a class="text-link" href="#clips">All clips <span aria-hidden="true">↗</span></a></div>`
+        : ""
+    }
+    </div>
+    ${
+      newest.length
+        ? `<div class="latest-grid">${newest
+            .map(
+              (c) => `
+      <a class="clip-card" href="#clips/${c.id}">
+        <div class="clip-cover">${image(c)}<span class="play-icon" aria-hidden="true"></span><span class="duration">${duration(c)}</span></div>
+        <div class="clip-card-text"><strong>${esc(c.name)}</strong>${verdictBadge(c)}</div>
+      </a>`,
+            )
+            .join("")}</div>`
+        : `<div class="surface empty-library">
+      <span class="film-icon" aria-hidden="true"></span><p>Finished videos will appear here as they render.</p></div>`
+    }
+    ${state.errors.length ? `<details class="activity-details" data-keep="library-errors"><summary>Clip library details</summary>${state.errors.map((error) => h("p", esc(error))).join("")}</details>` : ""}`;
 }
 function overview() {
-  const c =
-    state.clips.find((c) => c.classification === "Automatic first pass") ??
-    state.clips[0];
-  const latest = c
-    ? '<div class="overview-feature"><button class="hero-frame" data-act="clip" data-id="' +
-      c.id +
-      '" aria-label="Open latest clip">' +
-      image(c, "") +
-      '<span class="playbadge" aria-hidden="true">▶</span></button><div>' +
-      badge(c.classification, "cool") +
-      h("h3", esc(c.name), "clipname") +
-      h("p", esc(c.layout) + " · " + duration(c), "meta") +
-      h("p", esc(c.title), "reason") +
-      '<div class="spacer">' +
-      button("Play clip", "clip", c.id, "primary") +
-      compareLink(c) +
-      "</div></div></div>"
-    : h("p", "Your first export will appear here.", "empty");
-  return (
-    '<div class="page-head"><h1>Overview</h1>' +
-    button("Add source", "sources", "", "primary") +
-    "</div>" +
-    metrics() +
-    '<div class="grid"><section class="surface featured"><div class="sect"><h2>' +
-    (c?.classification === "Automatic first pass"
-      ? "Latest first pass"
-      : "Latest clip") +
-    "</h2>" +
-    (c ? badge(c.decision, c.decision === "review" ? "warm" : "cool") : "") +
-    "</div>" +
-    latest +
-    '</section><div class="stack"><section class="surface"><div class="sect"><h2>Monitor activity</h2>' +
-    info("Post-roll") +
-    "</div>" +
-    activity() +
-    '</section><section class="surface"><div class="sect"><h2>Recent exports</h2>' +
-    button("View clips", "clips", "", "ghost") +
-    "</div>" +
-    state.clips
-      .slice(0, 3)
-      .map(
-        (x) =>
-          '<div class="row">' +
-          image(x, "thumb") +
-          "<div><strong>" +
-          esc(x.name) +
-          '</strong><div class="meta">' +
-          esc(x.classification) +
-          " · " +
-          duration(x) +
-          '</div></div><div class="end">' +
-          button("Open", "clip", x.id) +
-          "</div></div>",
-      )
-      .join("") +
-    "</section></div></div>"
-  );
+  return `<div class="page-head"><h1>Monitor</h1>
+    <div class="page-actions"><div id="slot-meter" class="slot-meter">${slotMeter()}</div>
+      <div id="monitor-actions">${activeSources().length ? choose("secondary") : ""}</div></div>
+  </div>
+  <div class="overview-grid">
+    <div id="active-panel">${activity()}</div>
+    <aside class="surface publishing-card" id="overview-publishing">${overviewPublishing(state.publishing)}</aside>
+  </div>
+  <p class="sr-only" role="status" id="progress-announcement"></p>
+  <section class="latest" id="latest-clips" aria-label="Latest clips">${latestClips()}</section>`;
 }
-const sourceCheck = () =>
-  checked
-    ? '<div class="surface"><strong>' +
-      esc(checked.name) +
-      "</strong> " +
-      badge(checked.platform || "Watchlist") +
-      '<p class="meta">' +
-      esc(
-        [checked.title, checked.media, checked.chat]
-          .filter(Boolean)
-          .join(" · "),
-      ) +
-      "</p>" +
-      (checked.reason ? h("p", esc(checked.reason), "error") : "") +
-      '<label class="check"><input id="rights" type="checkbox">I can capture and edit this source locally' +
-      (checked.form.kind === "watchlist"
-        ? ""
-        : ", and confirm English GTA VI content") +
-      '.</label><div class="actions spacer">' +
-      button("Monitor once", "enable", checked.id, "primary") +
-      button("Save source", "save-source", checked.id) +
-      "</div></div>"
-    : "";
+
+function sourceCheck() {
+  if (!checked) return "";
+  const { form, archive, available, eligible } = checked;
+  const monitor =
+    form.kind === "watchlist"
+      ? "Looks for eligible broadcasts until you stop it."
+      : archive
+        ? "Scans the recording or interval once for up to one clip."
+        : "Can make several clips while the broadcast is live. The run ends when capture finishes normally or you press Stop. HypeClip retries if capture fails.";
+  const availability =
+    form.kind === "watchlist"
+      ? ""
+      : available
+        ? eligible
+          ? "Media available"
+          : "Source ineligible"
+        : "Media unavailable";
+  const chat = !available
+    ? "Chat unverified"
+    : checked.chat.startsWith("Media-only")
+      ? "Chat unavailable · using audio"
+      : checked.chat;
+  return `<section class="source-result">
+    <div class="section-head"><h3>${esc(checked.name)}</h3>${availability ? badge(availability, available && eligible ? "ok" : "warm") : ""}</div>
+    <p class="meta">${esc([checked.platform && platformName(checked.platform), checked.title, chat].filter(Boolean).join(" · "))}</p>
+    ${!available && !archive ? "<p>HypeClip can wait for this stream to become playable.</p>" : ""}
+    ${!eligible ? "<p>Choose an eligible English-language GTA VI broadcast.</p>" : ""}
+    ${checked.reason ? `<details class="activity-details"><summary>Source check details</summary><p>${esc(checked.reason)}</p></details>` : ""}
+    <label class="consent"><input id="rights" type="checkbox"><span>I have permission to capture and edit this source locally${form.kind === "watchlist" ? "" : " and confirm it is English-language GTA VI content"}.</span></label>
+    <p class="monitor-explained">${monitor} Finished videos appear in <a href="#clips">Clips</a>.</p>
+    <div class="actions">${button("Monitor once", "enable", checked.id, "primary", !eligible)}${info("Monitor once")}
+      ${button("Save source", "save-source", checked.id)}</div>
+  </section>`;
+}
 function sourceFields() {
+  const form = checked?.form.kind === sourceKind ? checked.form : {};
   if (sourceKind === "watchlist")
-    return (
-      "<p>20 creators · Kai Cenat and IShowSpeed pinned " +
-      info("Watchlist") +
-      "</p>"
-    );
+    return `<div class="field">
+    <label for="watch-stream">Watchlist stream</label> ${info("Watchlist")}
+    <select id="watch-stream" name="watchUrl"><option value="">Entire GTA VI watchlist</option>
+      ${state.watchlist
+        .map(
+          (
+            creator,
+          ) => `<optgroup label="${esc(creator.name + (creator.pinned ? " · Pinned" : ""))}">
+        ${creator.channels.map((c) => `<option value="${esc(c.url)}">${esc(creator.name + " · " + platformName(c.platform))}</option>`).join("")}
+      </optgroup>`,
+        )
+        .join("")}
+    </select></div>`;
   if (sourceKind === "recording")
-    return (
-      '<div class="fieldrow">' +
-      field(
-        "Recording path",
-        "file",
-        "",
-        "required placeholder='C:\\Videos\\recording.mp4'",
-      ) +
-      button("Choose recording", "pick", "file") +
-      '</div><div class="fieldrow">' +
-      field("Chat JSONL (optional)", "chat") +
-      button("Choose chat", "pick", "chat") +
-      "</div>" +
-      field(
-        "First frame UTC (with chat)",
-        "mediaStart",
-        "",
-        "placeholder='2026-11-18T14:02:51.783Z'",
-      ) +
-      '<div class="meta">Without chat, use media-only detection ' +
-      info("Media-only detection") +
-      "</div>"
-    );
-  return (
-    field(
-      "Channel, live stream or archive URL",
-      "url",
-      "",
-      "required placeholder='https://kick.com/creator'",
-    ) +
-    '<details><summary>Archive interval</summary><div class="form"><label><input name="archive" type="checkbox"> Treat this link as an archive</label><div class="fieldrow">' +
-    field(
-      "Start (minutes)",
-      "startMinute",
-      0,
-      'type="number" min="0" step="any"',
-    ) +
-    field(
-      "Duration (minutes)",
-      "minutes",
-      10,
-      'type="number" min="1" max="60" step="any"',
-    ) +
-    "</div></div></details>"
-  );
+    return `<div class="fieldrow">
+    ${field("Recording path", "file", form.file, "required placeholder='C:\\Videos\\recording.mp4'")}
+    ${button("Browse recordings", "pick", "file")}
+  </div>
+  <details${form.chat ? " open" : ""}><summary>Import chat (optional)</summary>
+    <div class="form">
+      <div class="fieldrow">${field("Chat JSONL path", "chat", form.chat)}${button("Browse chat files", "pick", "chat")}</div>
+      ${field("First frame time (UTC)", "mediaStart", form.mediaStart, 'placeholder="YYYY-MM-DDTHH:MM:SSZ"')}
+      <div>${info("Chat import")}</div>
+    </div>
+  </details>`;
+  return `<div class="link-field">
+    ${field("Stream link or handle", "url", form.url, 'required placeholder="https://kick.com/creator" aria-describedby="platform-hint"')}
+    <output id="platform-hint" aria-live="polite">Twitch, YouTube Live, Kick or TikTok LIVE</output>
+  </div>
+  <div id="handle-platform" hidden>${select("Platform for this handle", "platform", [["", "Choose a platform"], ...Object.entries(platforms).slice(0, 4)], "")}</div>
+  <details${form.archive ? " open" : ""}><summary>Archive interval</summary>
+    <div class="form">
+      <div class="actions"><label class="consent"><input name="archive" type="checkbox"${form.archive ? " checked" : ""}> Treat this link as an archive</label>${info("Archive interval")}</div>
+      <div class="fieldrow">${field("Start (minutes)", "startMinute", form.startMinute ?? 0, 'type="number" min="0" max="1440" step="any"')}
+      ${field("Length (minutes)", "minutes", form.minutes ?? 10, 'type="number" min="1" max="60" step="any"')}</div>
+    </div>
+  </details>`;
 }
-function sources() {
-  const picked = state.sources.find((s) => s.id === selectedSource);
-  return (
-    '<div class="page-head"><h1>Sources</h1></div><div class="grid"><section class="surface"><div class="sect"><h2>Add source</h2></div><div class="segment">' +
-    [
-      ["url", "Stream URL"],
-      ["recording", "Local recording"],
-      ["watchlist", "Watchlist"],
-    ]
-      .map(
-        ([v, t]) =>
-          '<button data-act="kind" data-id="' +
-          v +
-          '" aria-pressed="' +
-          (v === sourceKind) +
-          '">' +
-          t +
-          "</button>",
-      )
-      .join("") +
-    '</div><form id="source-form" class="form spacer">' +
-    sourceFields() +
-    '<div><button class="primary">Check source</button></div></form><div class="spacer" id="checked">' +
-    sourceCheck() +
-    '</div></section><div class="stack"><section class="surface"><div class="sect"><h2>Your sources</h2>' +
-    info("Media-only detection") +
-    '</div><div id="source-list">' +
-    sourceList() +
-    "</div></section>" +
-    (picked
-      ? '<section class="surface"><h2>' +
-        esc(picked.name) +
-        '</h2><form id="profile" class="form spacer">' +
-        layoutFields(picked.form.settings || {}) +
-        voiceContext(picked.form.settings?.context) +
-        '<div class="actions">' +
-        button("Preview source", "source-preview", picked.id) +
-        '<button>Save source presentation</button></div><div id="source-preview"></div></form></section>'
-      : "") +
-    '<section class="surface"><details><summary>Watchlist · ' +
-    state.roster.length +
-    " creators</summary>" +
-    state.roster
-      .map(
-        (r) =>
-          '<div class="row"><div>' +
-          esc(r.name) +
-          " " +
-          (r.pinned ? badge("Pinned", "cool") : "") +
-          '</div><small class="end">' +
-          esc(r.state) +
-          "</small></div>",
-      )
-      .join("") +
-    "</details></section></div></div>"
-  );
+const handleOnly = (value) =>
+  /^@?[\w-]+$/.test(value) || /^@[\w.-]+$/.test(value);
+function linkHint() {
+  const input = $("#source-form [name=url]");
+  if (!input) return;
+  const value = input.value.trim(),
+    needsPlatform = handleOnly(value);
+  $("#handle-platform").hidden = !needsPlatform;
+  const select = $('[name="platform"]');
+  select.disabled = !needsPlatform;
+  select.required = needsPlatform;
+  const hint = $("#platform-hint");
+  let text = "Twitch, YouTube Live, Kick or TikTok LIVE";
+  if (value && !needsPlatform) {
+    try {
+      const url = new URL(value.includes("://") ? value : "https://" + value);
+      const host = url.hostname.replace(/^www\./, "");
+      const platform = {
+        "twitch.tv": "Twitch",
+        "youtu.be": "YouTube Live",
+        "youtube.com": "YouTube Live",
+        "m.youtube.com": "YouTube Live",
+        "kick.com": "Kick",
+        "tiktok.com": "TikTok LIVE",
+      }[host];
+      if (platform && url.protocol === "https:") text = platform + " detected";
+    } catch {}
+  }
+  if (hint.textContent !== text) hint.textContent = text;
 }
+const handleUrl = (platform, value) => {
+  const handle = value.replace(/^@/, "");
+  return {
+    twitch: `https://www.twitch.tv/${handle}`,
+    youtube: `https://www.youtube.com/@${handle}/live`,
+    kick: `https://kick.com/${handle}`,
+    tiktok: `https://www.tiktok.com/@${handle}/live`,
+  }[platform];
+};
+
 function sourceList() {
   return (
     state.sources
       .map(
-        (s) =>
-          '<div class="row"><div><strong>' +
-          esc(s.name) +
-          '</strong><div class="meta">' +
-          esc(s.state) +
-          (s.reason ? " · " + esc(s.reason) : "") +
-          '</div><div class="actions">' +
-          (s.form.kind === "external"
-            ? ""
-            : button(
-                s.enabled ? "Stop" : "Select",
-                s.enabled ? "stop" : "select",
-                s.id,
-              )) +
-          (!s.enabled && s.form.kind !== "watchlist"
-            ? button("Presentation", "profile", s.id)
-            : "") +
-          "</div></div></div>",
+        (s) => `<div class="saved-source">
+    <div><strong>${esc(s.name)}</strong><p class="meta">${esc(s.enabled ? s.streams[0]?.state || fallbackState(s) : fallbackState(s))}</p></div>
+    ${
+      s.form.kind === "external"
+        ? ""
+        : `<div class="actions">
+      ${button(s.enabled ? "Stop" : "Select", s.enabled ? "stop" : "select", s.id)}
+      ${!s.enabled && s.form.kind !== "watchlist" ? button("Presentation", "profile", s.id, "quiet") : ""}
+    </div>`
+    }
+    ${activityDetails(s)}
+  </div>`,
       )
-      .join("") || h("p", "No saved or active sources.", "empty")
+      .join("") ||
+    h("p", "Sources you save or monitor will appear here.", "empty")
   );
 }
+
+function sourceCredentials() {
+  const descriptions = {
+    Twitch: [
+      "Set <code>TWITCH_USER_TOKEN</code> in .env to a reader’s Twitch user access token with <code>user:read:chat</code>. Create a Twitch app, register its redirect URL, and authorize that reader. HypeClip looks up the streamer’s ID for the monitor. Renew the token when it expires.",
+      external(
+        "Twitch OAuth setup",
+        "https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#implicit-grant-flow",
+      ) +
+        " · " +
+        external(
+          "Twitch chat scope",
+          "https://dev.twitch.tv/docs/chat/authenticating/",
+        ),
+    ],
+    YouTube: [
+      "Enable YouTube Data API v3. Set <code>YOUTUBE_API_KEY</code> to a restricted API key, or set <code>YOUTUBE_ACCESS_TOKEN</code> to an OAuth bearer token with <code>youtube.readonly</code> scope. HypeClip needs an active chat on the live video. Renew OAuth tokens with their issuer.",
+      external(
+        "Set up YouTube API credentials",
+        "https://developers.google.com/youtube/v3/getting-started",
+      ) +
+        " · " +
+        external(
+          "YouTube live chat",
+          "https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/list",
+        ),
+    ],
+    Kick: [
+      "Public live chat is sampled and may miss messages. Available VOD replay chat is fetched with the archive. The optional CLI source configuration can listen for signed <code>chat.message.sent</code> webhooks using <code>webhookPort</code>. A Kick developer app and public HTTPS callback are needed to register that subscription. The local monitor needs no Kick token.",
+      external(
+        "Configure Kick webhooks",
+        "https://github.com/KickEngineering/KickDevDocs/blob/main/events/introduction.md",
+      ),
+    ],
+    TikTok: [
+      "HypeClip can try to capture a known <code>@handle/live</code> room with playable media. It has no native TikTok LIVE chat reader. To use chat in a local recording, import the creator’s timestamped JSONL and supply the first frame time.",
+      "",
+    ],
+  };
+  return `<section id="source-credentials" class="surface source-credentials" tabindex="-1">
+    <div class="section-head"><h2>Stream chat</h2>${info("Media-only detection")}</div>
+    <p>Chat is optional. When a stream or file has playable media but no chat, HypeClip looks for highlights using audio.</p>
+    <div class="reader-grid">${state.providers
+      .map((provider) => {
+        const title =
+          provider.platform === "YouTube"
+            ? "YouTube Live"
+            : provider.platform === "TikTok"
+              ? "TikTok LIVE"
+              : provider.platform;
+        const [copy, links] = descriptions[provider.platform];
+        const status =
+          provider.platform === "Kick"
+            ? "Public chat reader"
+            : provider.platform === "TikTok"
+              ? "No live chat adapter"
+              : provider.liveChat.startsWith("missing")
+                ? "Reader not configured"
+                : "Reader entered · unverified";
+        return `<details class="reader"><summary><strong>${title}</strong><span>${status}</span></summary>
+        <p>${copy}</p>${links ? h("p", links, "doc-links") : ""}</details>`;
+      })
+      .join("")}</div>
+    <details class="reader"><summary><strong>Configure or check a reader on Windows</strong></summary>
+      <p>Add the relevant setting to <code class="path">${esc(state.publishing.envPath)}</code> and restart the dashboard. This command checks installed adapters and validates a configured Twitch reader. The live monitor shows when messages arrive.</p>
+      ${codeBlock(powershell(state.publishing.envPath, "providers --check"), "Copy reader check command")}
+    </details>
+  </section>`;
+}
+
+function sources() {
+  const picked = state.sources.find((s) => s.id === selectedSource);
+  return `<div class="page-head"><h1>Sources</h1><a href="#sources/chat" class="text-link">Stream chat settings <span aria-hidden="true">↓</span></a></div>
+    <div class="source-grid">
+      <section class="surface choose-panel" aria-labelledby="choose-title">
+        <div class="section-head"><h2 id="choose-title">Choose a stream</h2>${info("Choose a stream")}</div>
+        <div class="segment" role="group" aria-label="Source type">${[
+          ["watchlist", "Watchlist"],
+          ["url", "Paste a link"],
+          ["recording", "Local recording"],
+        ]
+          .map(
+            ([id, text]) =>
+              `<button type="button" data-act="kind" data-id="${id}" aria-pressed="${id === sourceKind}">${text}</button>`,
+          )
+          .join("")}</div>
+        <form id="source-form" class="form">
+          ${sourceFields()}
+          <div class="actions"><button class="primary">Check source</button>${info("Check source")}</div>
+          <p id="source-error" class="error form-message" role="alert"></p>
+        </form>
+        <div id="checked">${sourceCheck()}</div>
+      </section>
+      <div class="stack">
+        <section class="surface"><h2>Your sources</h2><div id="source-list">${sourceList()}</div></section>
+        ${
+          picked
+            ? `<section class="surface"><h2>${esc(picked.name)}</h2><form id="profile" class="form">
+          ${layoutFields(picked.form.settings || {})}${voiceContext(picked.form.settings?.context)}
+          <div class="actions">${button("Preview source", "source-preview", picked.id)}<button>Save source presentation</button></div>
+          <div id="source-preview"></div></form></section>`
+            : ""
+        }
+        <details class="surface roster"><summary>Watchlist status</summary><div id="watchlist-status">${rosterRows()}</div></details>
+      </div>
+    </div>
+    ${sourceCredentials()}`;
+}
+function rosterRows() {
+  return state.roster
+    .map(
+      (r) =>
+        `<div class="roster-row"><span>${esc(r.name)}${r.pinned ? " · Pinned" : ""}</span><span>${esc(r.state)}</span></div>`,
+    )
+    .join("");
+}
+
+/* Existing presentation and comparison controls. */
 function layoutFields(s) {
   return (
     select(
@@ -579,82 +712,77 @@ function editorForm(c) {
     "</output></form>"
   );
 }
+
 function decisions(c) {
-  const s = c.selection || {},
-    b = c.boundary || {},
-    score =
-      c.mode === "audio"
-        ? s.audioRise
-          ? (s.audioRise.levelDb - s.audioRise.baselineDb).toFixed(2) +
-            " dB above baseline"
-          : "Audio rise"
-        : c.mode === "operator"
-          ? "Operator marker"
-          : s.score + "/100 · " + s.distinctUsers + " distinct chatters";
-  return (
-    '<div class="line"><h3>Clip decision</h3>' +
-    info("Qwen review") +
-    "</div><p>" +
-    badge(c.decision, c.decision === "review" ? "warm" : "cool") +
-    " " +
-    esc(c.model || "Model unavailable") +
-    '</p><p class="reason">' +
-    esc(c.reason) +
-    "</p><dl><dt>Qwen decision</dt><dd>" +
-    esc(c.raw?.decision || "Unavailable") +
-    "</dd><dt>App decision</dt><dd>" +
-    esc(c.decision) +
-    "</dd><dt>Trigger</dt><dd>" +
-    esc(score) +
-    '</dd><dt>Source time</dt><dd class="code">' +
-    time(c.sourceStart) +
-    " – " +
-    time(c.sourceEnd) +
-    "</dd><dt>Composition</dt><dd>" +
-    esc(c.layoutReason || c.layout) +
-    "</dd><dt>Boundaries</dt><dd>" +
-    esc(b.reason || s.trim) +
-    "</dd><dt>Override</dt><dd>" +
-    esc(c.override || "None") +
-    "</dd></dl>" +
-    (c.evidenceTrace?.resolved?.length
-      ? '<details><summary>Cited speech and chat</summary><ol class="citations">' +
-        c.evidenceTrace.resolved
-          .map((r) =>
-            h(
-              "li",
-              "<time>" +
-                time(c.sourceStart + r.startMs) +
-                "</time> " +
-                esc(r.kind === "chat" ? "Chat" : "Speech") +
-                h("p", esc(r.text)),
-            ),
-          )
-          .join("") +
-        "</ol></details>"
-      : "") +
-    "<details><summary>Detection and boundary evidence</summary><pre>" +
-    esc(
+  const reason =
+    c.reason ||
+    (c.decision === "review"
+      ? "This clip needs a human review."
+      : "No review reason was recorded.");
+  return `<div class="reason-panel${c.decision === "review" ? " needs-review" : ""}">
+      <h3>${c.decision === "review" ? "Why it needs attention" : "Clip decision"}</h3>
+      <p>${esc(reason)}</p>
+    </div>
+    <div class="actions review-actions">
+      ${c.review ? badge(c.review, "ok") : button("Mark reviewed unchanged", "review", c.id)}
+    </div>
+    <details class="clip-diagnostics" data-clip-details="${c.id}">
+      <summary>Technical details</summary>
+      <div data-details-content><p>Loading evidence…</p></div>
+    </details>`;
+}
+
+async function loadClipDetails(panel) {
+  const c = state.clips.find((clip) => clip.id === panel.dataset.clipDetails);
+  if (!c) return;
+  panel.dataset.loaded = "true";
+  const content = panel.querySelector("[data-details-content]");
+  try {
+    const response = await fetch("/api/clip-details/" + c.id);
+    if (!response.ok) throw Error("Couldn’t load technical details.");
+    const details = await response.json(),
+      selection = c.selection || {};
+    content.innerHTML = `<dl class="facts">
+      <div><dt>Model</dt><dd>${esc(details.model || "Unavailable")}</dd></div>
+      <div><dt>Raw model decision</dt><dd>${esc(details.raw?.decision || "Unavailable")}</dd></div>
+      <div><dt>Validated decision</dt><dd>${esc(c.decision)}</dd></div>
+      <div><dt>Source time</dt><dd>${time(c.sourceStart)} – ${time(c.sourceEnd)}</dd></div>
+      <div><dt>Composition</dt><dd>${esc(c.layoutReason || c.layout)}</dd></div>
+      <div><dt>Boundaries</dt><dd>${esc(c.boundary?.reason || selection.trim)}</dd></div>
+      <div><dt>Manual override</dt><dd>${esc(c.override || "None")}</dd></div>
+    </dl>
+    ${
+      details.evidenceTrace?.resolved?.length
+        ? `<h3>Cited speech and chat</h3><ol class="citations">
+      ${details.evidenceTrace.resolved
+        .map((row) =>
+          h(
+            "li",
+            `<time>${time(c.sourceStart + row.startMs)}</time> ${row.kind === "chat" ? "Chat" : "Speech"}<p>${esc(row.text)}</p>`,
+          ),
+        )
+        .join("")}</ol>`
+        : ""
+    }
+    <h3>Detection and boundary evidence</h3><pre tabindex="0">${esc(
       JSON.stringify(
         {
-          trigger: s,
-          chat: c.chat,
-          boundary: b,
-          modelCitations: c.evidenceTrace,
+          trigger: selection,
+          chat: details.chat,
+          boundary: c.boundary,
+          modelCitations: details.evidenceTrace,
         },
         null,
         2,
       ),
-    ) +
-    "</pre></details><details><summary>Raw Qwen response</summary><pre>" +
-    esc(JSON.stringify(c.raw ?? {}, null, 2)) +
-    '</pre></details><div class="actions">' +
-    (c.review
-      ? badge(c.review, "ok")
-      : button("Mark reviewed unchanged", "review", c.id)) +
-    "</div>"
-  );
+    )}</pre>
+    <h3>Raw model output</h3><pre tabindex="0">${esc(JSON.stringify(details.modelResponse ?? details.raw ?? {}, null, 2))}</pre>`;
+  } catch (error) {
+    delete panel.dataset.loaded;
+    content.innerHTML = h("p", esc(error.message), "error");
+  }
 }
+
 function sameMoment(a, b) {
   function identity(c) {
     if (c.broadcast) return c.broadcast;
@@ -753,92 +881,7 @@ function compareCuts(original, revised) {
       : "")
   );
 }
-function clips() {
-  const c = clipNow();
-  const other = compareId && state.clips.find((x) => x.id === compareId);
-  if (other && c && sameMoment(c, other)) return compareCuts(c, other);
-  if (!c)
-    return (
-      '<div class="page-head"><h1>Clips</h1></div><section class="surface"><p>No clips exported yet.</p>' +
-      button("Add source", "sources") +
-      "</section>"
-    );
-  selected = c.id;
-  return (
-    '<div class="page-head"><h1>Clips</h1>' +
-    badge(state.clips.length + " exports") +
-    '</div><div class="clipgrid"><aside class="surface library" aria-label="Exports"><label class="library-filter">Show<select id="library-filter">' +
-    [
-      ["all", "All clips"],
-      ["review", "Needs review"],
-      ["automatic", "Automatic first passes"],
-      ["assisted", "Manually adjusted"],
-    ]
-      .map(
-        ([v, label]) =>
-          '<option value="' +
-          v +
-          '"' +
-          (v === libraryFilter ? " selected" : "") +
-          ">" +
-          label +
-          "</option>",
-      )
-      .join("") +
-    '</select></label><div class="cliplist">' +
-    clipList(c) +
-    '</div></aside><div class="playerwrap"><video class="player" controls playsinline preload="metadata" poster="/media/' +
-    c.id +
-    '/poster" src="/media/' +
-    (preview || c.id) +
-    '/video"></video><div class="actions"><a class="button" download href="/media/' +
-    c.id +
-    '/download">Download MP4</a>' +
-    button("Open folder", "folder", c.id) +
-    compareLink(c) +
-    '</div><p class="path">' +
-    esc(c.path) +
-    '</p></div><section class="surface inspector"><div class="pills">' +
-    badge(c.classification, "cool") +
-    badge(c.platform) +
-    '</div><h2 class="clipname">' +
-    esc(c.name) +
-    '</h2><p class="meta">' +
-    esc(c.title) +
-    '</p><div class="segment"><button data-act="decision" aria-pressed="' +
-    !editor +
-    '">Decision</button><button data-act="edit" aria-pressed="' +
-    editor +
-    '">Presentation</button></div><div class="segbody">' +
-    (editor ? editorForm(c) : decisions(c)) +
-    "</div></section></div>"
-  );
-}
-function clipList(c) {
-  return (
-    state.clips
-      .filter(matchesClipFilter)
-      .map(
-        (x) =>
-          '<button class="' +
-          (c.id === x.id ? "selected" : "") +
-          '" data-act="clip" data-id="' +
-          x.id +
-          '">' +
-          image(x, "thumb") +
-          "<span><strong>" +
-          esc(x.name) +
-          "</strong><small>" +
-          time(x.sourceStart) +
-          "</small><small>" +
-          duration(x) +
-          " · " +
-          esc(x.decision) +
-          "</small></span></button>",
-      )
-      .join("") || h("p", "No clips match this filter.", "empty")
-  );
-}
+
 function matchesClipFilter(c) {
   if (libraryFilter === "review") return c.decision === "review" && !c.review;
   if (libraryFilter === "automatic")
@@ -847,124 +890,205 @@ function matchesClipFilter(c) {
     return c.classification === "Manually adjusted";
   return true;
 }
-function settings() {
+function clipList() {
   return (
-    '<div class="page-head"><h1>Settings</h1></div><div class="grid"><section class="surface"><h2>Capture</h2><form id="limits" class="form spacer"><label>Concurrent captures ' +
-    info("Capture limit") +
-    '<input type="number" name="limit" min="1" max="8" value="' +
-    state.slots.limit +
-    '"></label><div><button>Save limit</button></div></form><dl><dt>Evaluation</dt><dd>' +
-    esc(state.model) +
-    " " +
-    info("Qwen review") +
-    "</dd><dt>Post-roll</dt><dd>Reserved per candidate " +
-    info("Post-roll") +
-    '</dd></dl></section><section class="surface"><div class="sect"><h2>Publishing</h2>' +
-    badge("Off") +
-    "</div><p>TikTok through Buffer " +
-    info("Publishing connection") +
-    "</p><dl><dt>Buffer</dt><dd>" +
-    (state.buffer ? "Configured" : "Not connected") +
-    "</dd><dt>R2 storage</dt><dd>" +
-    (state.r2 ? "Configured" : "Not connected") +
-    "</dd></dl><details><summary>Connection setup</summary><p>Set BUFFER_ACCESS_TOKEN and BUFFER_CHANNEL_ID in the checkout’s .env for an optional Buffer destination. Restart the server to read changed settings. Publishing requires a separate explicit CLI action.</p>" +
-    button("Check configured connection", "check-output") +
-    '</details></section></div><section class="surface spacer"><div class="sect"><h2>Input connections</h2></div><div class="tablewrap"><table><thead><tr>' +
-    [
-      "Input",
-      "Discovery",
-      "Live media",
-      "Live chat",
-      "Archive media",
-      "Replay chat",
-    ]
-      .map((s) => h("th", s))
-      .join("") +
-    "</tr></thead><tbody>" +
-    state.providers
+    state.clips
+      .filter(matchesClipFilter)
       .map(
-        (p) =>
-          "<tr>" +
-          [
-            p.platform,
-            p.discovery,
-            p.liveMedia,
-            p.liveChat,
-            p.archiveMedia,
-            p.replayChat,
-          ]
-            .map((v) => h("td", esc(v)))
-            .join("") +
-          "</tr>",
+        (
+          c,
+        ) => `<a class="library-card" href="#clips/${c.id}"${selected === c.id ? ' aria-current="true"' : ""}>
+      ${image(c, "thumb")}<span><strong>${esc(c.name)}</strong><small>${duration(c)} · ${verdict(c)}</small></span>
+    </a>`,
       )
-      .join("") +
-    "</tbody></table></div></section>"
+      .join("") || h("p", "No clips match this filter.", "empty")
   );
 }
+function clips() {
+  const c = clipNow();
+  const other = compareId && state.clips.find((x) => x.id === compareId);
+  if (other && c && sameMoment(c, other)) return compareCuts(c, other);
+  if (!c)
+    return `<div class="page-head"><h1>Clips</h1></div><section class="surface empty-library">
+    <span class="film-icon" aria-hidden="true"></span><p>Finished videos will appear here as they render.</p>${choose()}
+    </section>`;
+  selected = c.id;
+  return `<div class="page-head"><h1>Clips</h1><a href="#clip-library" class="text-link">Browse library <span aria-hidden="true">↓</span></a></div>
+    <div class="clip-workspace">
+      <section class="playerwrap" aria-label="Clip playback">
+        <video class="player" controls playsinline preload="metadata" aria-label="Clip from ${esc(c.name)}"
+          poster="/media/${c.id}/poster" src="/media/${preview || c.id}/video"></video>
+      </section>
+      <section class="surface inspector">
+        <div class="clip-status">${verdictBadge(c)}<span>${esc(platformName(c.platform))} · ${duration(c)}</span></div>
+        <h2>${esc(c.name)}</h2>
+        ${c.title && c.title !== c.name ? h("p", esc(c.title), "clip-title") : ""}
+        <div class="actions clip-actions"><a class="button primary" download href="/media/${c.id}/download">Download MP4</a>
+          ${button("Open folder", "folder", c.id)}${compareLink(c)}</div>
+        <div class="segment" role="group" aria-label="Clip view">${[
+          ["decision", "Review", !editor],
+          ["edit", "Presentation", editor],
+        ]
+          .map(
+            ([action, label, pressed]) =>
+              `<button type="button" data-act="${action}" aria-pressed="${pressed}">${label}</button>`,
+          )
+          .join("")}
+          ${editor ? info("Render preview") : info("Qwen review")}</div>
+        <div id="review-panel">${editor ? editorForm(c) : decisions(c)}</div>
+      </section>
+    </div>
+    <section class="surface library" id="clip-library" tabindex="-1" aria-label="Clip library">
+      <div class="section-head"><h2>Clip library</h2><label class="library-filter">Show
+        <select id="library-filter">${[
+          ["all", "All clips"],
+          ["review", "Needs review"],
+          ["automatic", "Automatic first passes"],
+          ["assisted", "Manually adjusted"],
+        ]
+          .map(
+            ([id, label]) =>
+              `<option value="${id}"${id === libraryFilter ? " selected" : ""}>${label}</option>`,
+          )
+          .join("")}</select>
+      </label></div><div id="clip-list">${clipList()}</div>
+    </section>`;
+}
+function settings() {
+  return `<div class="page-head"><h1>Settings</h1></div>
+    <div class="source-grid">
+      <section class="surface"><h2>Capture</h2>
+        <form id="limits" class="form">
+          <div class="field"><label for="capture-limit">Concurrent captures</label> ${info("Capture limit")}
+            <input type="number" id="capture-limit" name="limit" min="1" max="8" value="${state.slots.limit}" required>
+          </div>
+          <div><button class="primary">Save limit</button></div>
+        </form></section>
+      <section class="surface"><div class="section-head"><h2>Local model</h2>${info("Qwen review")}</div>
+        <p>${esc(state.model)}</p>
+      </section>
+    </div>`;
+}
 function draw() {
-  if (!state) return;
-  $("nav").innerHTML = ["overview", "sources", "clips", "settings"]
+  const title = nav[page];
+  document.title = title + " · HypeClip Studio";
+  $("nav").innerHTML = Object.entries(nav)
     .map(
-      (k) =>
-        '<a href="#' +
-        k +
-        '" ' +
-        (page === k ? 'aria-current="page"' : "") +
-        ">" +
-        k[0].toUpperCase() +
-        k.slice(1) +
-        "</a>",
+      ([id, label]) =>
+        `<a href="#${id}"${page === id ? ' aria-current="page"' : ""}>${label}</a>`,
     )
     .join("");
-  main.innerHTML = ({ overview, sources, clips, settings }[page] || overview)();
-  ages();
+  main.innerHTML = {
+    overview,
+    sources,
+    clips,
+    settings,
+    publishing: () => publishingPage(state.publishing, pageDetail, channels),
+  }[page]();
+  linkHint();
 }
-function ages() {
-  document
-    .querySelectorAll("[data-elapsed]")
-    .forEach(
-      (e) =>
-        (e.textContent =
-          Math.max(
-            0,
-            Math.floor((Date.now() - Number(e.dataset.elapsed)) / 1000),
-          ) + " s"),
+
+const rendered = new WeakMap();
+function patchRegion(id, markup) {
+  const node = document.getElementById(id);
+  if (!node || rendered.get(node) === markup) return;
+  rendered.set(node, markup);
+  const open = new Map(
+    [...node.querySelectorAll("details[data-keep]")].map((d) => [
+      d.dataset.keep,
+      d.open,
+    ]),
+  );
+  const active = node.contains(document.activeElement)
+    ? document.activeElement
+    : null;
+  node.innerHTML = markup;
+  for (const d of node.querySelectorAll("details[data-keep]"))
+    if (open.has(d.dataset.keep)) d.open = open.get(d.dataset.keep);
+  if (active) {
+    const replacement = [...node.querySelectorAll("button, a, summary")].find(
+      (item) =>
+        item.tagName === active.tagName &&
+        item.dataset.act === active.dataset.act &&
+        item.dataset.id === active.dataset.id &&
+        item.dataset.help === active.dataset.help &&
+        item.textContent === active.textContent &&
+        item.getAttribute("href") === active.getAttribute("href"),
     );
+    replacement?.focus({ preventScroll: true });
+  }
 }
-async function refresh(force = false) {
-  const r = await fetch("/api/state"),
-    next = await r.json();
-  if (!r.ok) throw Error(next.error);
-  const sig = JSON.stringify(next);
+function updatePublishing() {
+  patchRegion("posting-summary", publishingSummary(state.publishing));
+  patchRegion(
+    "setup-steps",
+    publishingSteps(state.publishing, pageDetail, channels),
+  );
+}
+let requestIndex = 0;
+async function refresh() {
+  const request = ++requestIndex,
+    response = await fetch("/api/state");
+  const next = await response.json();
+  if (!response.ok) throw Error(next.error || "Couldn’t reach HypeClip.");
+  if (request !== requestIndex) return;
+  const before = state;
   state = next;
+  if (!page) return route();
+  if (page === "overview") {
+    patchRegion("slot-meter", slotMeter());
+    patchRegion(
+      "monitor-actions",
+      activeSources().length ? choose("secondary") : "",
+    );
+    patchRegion("active-panel", activity());
+    patchRegion("latest-clips", latestClips());
+    patchRegion("overview-publishing", overviewPublishing(state.publishing));
+    const status = activeSources()
+      .flatMap((source) =>
+        source.streams.map((stream) => {
+          const stages = source.jobs
+            .filter((job) => job.stream === stream.id)
+            .map((job) => job.state);
+          return [stream.name, stream.state, stream.chat, ...stages].join(". ");
+        }),
+      )
+      .join(". ");
+    const announcement = $("#progress-announcement");
+    if (announcement.textContent !== status) announcement.textContent = status;
+  }
+  if (page === "sources") {
+    patchRegion("source-list", sourceList());
+    patchRegion("watchlist-status", rosterRows());
+  }
+  if (
+    page === "publishing" &&
+    JSON.stringify(before.publishing) !== JSON.stringify(state.publishing)
+  )
+    updatePublishing();
+  if (page !== "clips") return;
+  if (!before.clips.length && state.clips.length) draw();
+  patchRegion("clip-list", clipList());
   if (pending) {
-    const t = state.renders.find((v) => v.id === pending);
-    if (t?.state === "Preview ready") {
+    const task = state.renders.find((v) => v.id === pending);
+    if (task?.state === "Preview ready") {
       preview = pending;
       pending = null;
-      const v = $("video");
-      if (v) {
-        v.src = "/media/" + preview + "/video";
-        v.removeAttribute("poster");
-        v.load();
+      const player = $(".player");
+      if (player) {
+        player.src = "/media/" + preview + "/video";
+        player.removeAttribute("poster");
+        player.load();
       }
       if ($("#draft-state")) $("#draft-state").textContent = "Preview ready";
-    } else if (t?.state === "Render failed") {
+    } else if (task?.state === "Render failed") {
       pending = null;
-      notify(t.reason);
       if ($("#draft-state")) $("#draft-state").textContent = "Render failed";
+      notify(task.reason);
     }
   }
-  if (force || !page) {
-    route();
-  } else if (signature !== sig) {
-    if (page === "overview") draw();
-    if (page === "sources" && $("#source-list"))
-      $("#source-list").innerHTML = sourceList();
-  }
-  signature = sig;
-  ages();
 }
+
 function layoutValues(f, previous = {}) {
   const rect = (name) => {
     const v = f.get(name)?.trim();
@@ -1005,281 +1129,320 @@ function layoutValues(f, previous = {}) {
     gameplayCrop: rect("single"),
   };
 }
-function rights() {
-  if (!$("#rights")?.checked)
-    throw Error(
-      "Confirm local capture permission and source eligibility first",
-    );
-  return true;
+
+function sourceError(message) {
+  const box = $("#source-error");
+  if (box) box.textContent = message;
+  else notify(message);
 }
-document.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (e.target.closest("dialog")) {
-    $("#help").close();
-    return;
-  }
-  const f = new FormData(e.target),
-    submit = e.submitter;
+document.addEventListener("submit", async (event) => {
+  const form = event.target;
+  if (form.closest("dialog")) return;
+  event.preventDefault();
+  const f = new FormData(form),
+    submit = event.submitter;
   if (submit) submit.disabled = true;
   try {
-    switch (e.target.id) {
-      case "source-form":
-        checked = null;
-        if (
-          sourceKind === "url" &&
-          /^@?[\w.-]+$/.test(f.get("url") || "") &&
-          !(f.get("url") || "").includes(".")
-        ) {
-          if (!f.get("platform")) {
-            if (f.has("platform"))
-              throw Error("Choose a platform for this handle");
-            const box = document.createElement("div");
-            box.innerHTML = select(
-              "Platform for this handle",
-              "platform",
-              [
-                ["", "Choose platform"],
-                ["twitch", "Twitch"],
-                ["youtube", "YouTube Live"],
-                ["kick", "Kick"],
-                ["tiktok", "TikTok LIVE"],
-              ],
-              "",
-            );
-            submit.parentElement.before(box);
-            throw Error(
-              "This handle can belong to several platforms. Choose its platform.",
-            );
+    if (form.id === "source-form") {
+      sourceError("");
+      checked = null;
+      $("#checked").innerHTML = "<p role='status'>Checking source…</p>";
+      const revision = sourceRevision;
+      const url = (f.get("url") || f.get("watchUrl") || "").trim();
+      const kind = f.get("watchUrl") ? "url" : sourceKind;
+      const result = await post("inspect", {
+        kind,
+        file: f.get("file") || undefined,
+        chat: f.get("chat") || undefined,
+        mediaStart: f.get("mediaStart") || undefined,
+        url: f.get("platform") ? handleUrl(f.get("platform"), url) : url,
+        archive: f.has("archive"),
+        startMinute: Number(f.get("startMinute") || 0),
+        minutes: Number(f.get("minutes") || 10),
+      });
+      if (!form.isConnected || revision !== sourceRevision) return;
+      checked = result;
+      $("#checked").innerHTML = sourceCheck();
+      $("#rights")?.focus({ preventScroll: true });
+      return;
+    }
+    if (form.id === "limits") {
+      await post("limit", { limit: Number(f.get("limit")) });
+      notify("Capture limit saved");
+    }
+    if (form.id === "profile") {
+      const s = state.sources.find((source) => source.id === selectedSource);
+      const vals = layoutValues(f, s.form.settings);
+      if (!vals.gameplayCrop) delete vals.gameplayCrop;
+      if (f.get("fact"))
+        vals.context = {
+          fact: f.get("fact"),
+          source: f.get("evidence"),
+          readingConflict: f.get("readingConflict"),
+        };
+      await post("source", { id: s.id, save: true, settings: vals });
+      notify("Source presentation saved");
+    }
+    if (form.id === "edit") {
+      const c = clipNow(),
+        values = layoutValues(f, c.settings),
+        text = f.get("scene").trim();
+      values.sceneCaption = text
+        ? {
+            text,
+            startMs: Math.round(Number(f.get("cardStart")) * 1000),
+            endMs: Math.round(Number(f.get("cardEnd")) * 1000),
+            panelY: Number(f.get("panelY")) / 100,
           }
-          const handle = f.get("url").replace(/^@/, "");
-          f.set(
-            "url",
-            {
-              youtube: "https://www.youtube.com/@" + handle + "/live",
-              kick: "https://kick.com/" + handle,
-              twitch: "https://www.twitch.tv/" + handle,
-              tiktok: "https://www.tiktok.com/@" + handle + "/live",
-            }[f.get("platform")],
-          );
-        }
-        checked = await post("inspect", {
-          kind: sourceKind,
-          ...Object.fromEntries(f),
-          archive: f.has("archive"),
-          startMinute: Number(f.get("startMinute") || 0),
-          minutes: Number(f.get("minutes") || 10),
-        });
-        $("#checked").innerHTML = sourceCheck();
-        break;
-      case "limits":
-        await post("limit", { limit: Number(f.get("limit")) });
-        notify("Capture limit saved");
-        break;
-      case "profile": {
-        const s = state.sources.find((s) => s.id === selectedSource);
-        const vals = layoutValues(f, s.form.settings);
-        if (!vals.gameplayCrop) delete vals.gameplayCrop;
-        if (f.get("fact"))
-          vals.context = {
-            fact: f.get("fact"),
-            source: f.get("evidence"),
-            readingConflict: f.get("readingConflict"),
-          };
-        await post("source", { id: s.id, save: true, settings: vals });
-        notify("Source presentation saved");
-        break;
-      }
-      case "edit": {
-        const c = clipNow(),
-          s = layoutValues(f, c.settings),
-          text = f.get("scene").trim();
-        s.sceneCaption = text
-          ? {
-              text,
-              startMs: Math.round(Number(f.get("cardStart")) * 1000),
-              endMs: Math.round(Number(f.get("cardEnd")) * 1000),
-              panelY: Number(f.get("panelY")) / 100,
-            }
-          : null;
-        s.postCaption = f.get("postCaption");
-        pending = (await post("render", { id: c.id, settings: s })).id;
-        preview = null;
-        $("#draft-state").textContent = "Rendering preview…";
-        break;
-      }
+        : null;
+      values.postCaption = f.get("postCaption");
+      const result = await post("render", { id: c.id, settings: values });
+      if (!form.isConnected) return;
+      pending = result.id;
+      preview = null;
+      $("#draft-state").textContent = "Rendering video…";
     }
     await refresh();
-  } catch (err) {
-    notify(err.message);
+  } catch (error) {
+    if (form.id === "source-form" && form.isConnected) {
+      $("#checked").innerHTML = "";
+      sourceError(error.message);
+    } else notify(error.message);
   } finally {
     if (submit) submit.disabled = false;
   }
 });
-document.addEventListener("input", (e) => {
-  if (e.target.id === "library-filter") {
-    libraryFilter = e.target.value;
-    $(".cliplist").innerHTML = clipList(clipNow());
-    return;
+document.addEventListener("input", (event) => {
+  const input = event.target;
+  if (input.id === "library-filter") {
+    libraryFilter = input.value;
+    patchRegion("clip-list", clipList());
   }
-  if (e.target.name === "layoutMode" && e.target.closest("#edit")) {
-    const v = e.target.value;
+  if (input.closest("#source-form")) {
+    sourceRevision++;
+    linkHint();
+    sourceError("");
+    if ($("#checked").innerHTML) {
+      checked = null;
+      $("#checked").innerHTML = "";
+    }
+  }
+  if (input.name === "layoutMode" && input.closest("#edit")) {
     $("#edit [name=panelY]").value =
-      v === "gameplay" || (v === "auto" && !clipNow().splitScreen?.facecam)
+      input.value === "gameplay" ||
+      (input.value === "auto" && !clipNow().splitScreen?.facecam)
         ? 24
         : 86;
   }
-  if (e.target.closest("#source-form") && checked) {
-    checked = null;
-    $("#checked").innerHTML = "";
-  }
-  if (e.target.closest("#edit") && (preview || pending)) {
+  if (input.closest("#edit") && (preview || pending)) {
     preview = pending = null;
     $("#draft-state").textContent = "Render the changed settings to preview.";
   }
 });
-document.addEventListener("click", async (e) => {
-  if (e.target.closest(".skip")) {
-    e.preventDefault();
-    main.focus();
+document.addEventListener("click", async (event) => {
+  const link = event.target.closest('a[href="#main"],a[href="#clip-library"]');
+  if (link) {
+    event.preventDefault();
+    $(link.getAttribute("href"))?.focus();
     return;
   }
-  const t = e.target.closest("button");
-  if (!t) return;
-  if (t.dataset.help) {
-    e.preventDefault();
-    $("#help-title").textContent = t.dataset.help;
-    $("#help-copy").textContent = help[t.dataset.help];
+  const target = event.target.closest("button");
+  if (!target) return;
+  const { help: topic, act, id } = target.dataset;
+  if (topic) {
+    $("#help-title").textContent = topic;
+    $("#help-copy").textContent = help[topic];
     $("#help").showModal();
     return;
   }
-  const a = t.dataset.act,
-    id = t.dataset.id;
-  if (!a) return;
+  if (!act) return;
   try {
-    if (a === "cue-endings") {
-      for (const video of document.querySelectorAll(".cut-player")) {
-        video.pause();
-        video.currentTime = Number(video.dataset.cue);
+    switch (act) {
+      case "cue-endings":
+        for (const video of document.querySelectorAll(".cut-player")) {
+          video.pause();
+          video.currentTime = Number(video.dataset.cue);
+        }
+        return;
+      case "kind":
+        sourceKind = id;
+        checked = null;
+        draw();
+        $(`[data-act=kind][data-id="${id}"]`)?.focus();
+        return;
+      case "decision":
+      case "edit":
+        editor = act === "edit";
+        preview = pending = null;
+        draw();
+        $(`[data-act="${act}"]`)?.focus();
+        return;
+      case "profile":
+        selectedSource = id;
+        draw();
+        $("#profile input, #profile select")?.focus();
+        return;
+      case "copy":
+        await navigator.clipboard.writeText(
+          target.parentElement.querySelector("pre").textContent,
+        );
+        notify("Copied to clipboard");
+        return;
+      case "copy-channel":
+        await navigator.clipboard.writeText(id);
+        notify("Channel ID copied");
+        return;
+    }
+    target.disabled = true;
+    switch (act) {
+      case "check-output": {
+        const p = await post("check-output", {});
+        state.publishing = p;
+        updatePublishing();
+        notify(
+          p.destination === "verified"
+            ? "Confirmed " + p.name
+            : p.destination === "disconnected"
+              ? "Reconnect the TikTok account in Buffer."
+              : "Couldn’t verify the TikTok destination. Check the key and channel ID.",
+        );
+        return;
       }
-      return;
-    }
-    if (a === "clip") return openClip(id);
-    if (["sources", "clips"].includes(a)) {
-      location.hash = a;
-      return;
-    }
-    if (a === "kind") {
-      sourceKind = id;
-      checked = null;
-      draw();
-      return;
-    }
-    if (a === "edit" || a === "decision") {
-      editor = a === "edit";
-      pending = preview = null;
-      draw();
-      return;
-    }
-    if (a === "profile") {
-      selectedSource = id;
-      draw();
-      return;
-    }
-    if (a === "check-output") {
-      const c = await post("check-output", {});
-      notify(
-        c.name +
-          " · " +
-          (c.connected ? "Connected" : "Disconnected") +
-          " · Publishing off",
-      );
-      return;
-    }
-    if (a === "pick") {
-      const r = await post("pick", { chat: id === "chat" });
-      if (r.path) {
-        const v = $('[name="' + id + '"]');
-        v.value = r.path;
-        v.dispatchEvent(new Event("input", { bubbles: true }));
+      case "find-destinations": {
+        const result = await post("find-destinations", {});
+        channels = result.channels;
+        state.publishing = result.publishing;
+        updatePublishing();
+        notify(
+          channels.length
+            ? "TikTok channels found"
+            : "No TikTok channels found",
+        );
+        return;
       }
-      return;
-    }
-    if (a === "select") {
-      const s = state.sources.find((s) => s.id === id);
-      checked = await post("inspect", s.form);
-      sourceKind = s.form.kind;
-      draw();
-      return;
-    }
-    if (a === "source-preview") {
-      const s = state.sources.find((s) => s.id === id),
-        vals = layoutValues(new FormData($("#profile")), s.form.settings);
-      if (!vals.gameplayCrop) delete vals.gameplayCrop;
-      t.disabled = true;
-      try {
-        const r = await post("source-preview", { id, settings: vals });
-        $("#source-preview").innerHTML =
-          '<img class="player" style="max-height:380px;object-fit:contain" alt="Source layout preview" src="/source-frame/' +
-          r.id +
-          '"><p class="meta">' +
-          esc(r.reason) +
-          "</p>";
-      } finally {
-        t.disabled = false;
+      case "pick": {
+        const data = await post("pick", { chat: id === "chat" });
+        const input = $(`[name="${id}"]`);
+        if (input && data.path) {
+          input.value = data.path;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        return;
       }
-      return;
-    }
-    if (a === "stop") await post("source", { id, stop: true });
-    if (a === "enable" || a === "save-source") {
-      await post("source", {
-        id,
-        enable: a === "enable",
-        save: a === "save-source",
-        rights: a === "enable" ? rights() : false,
-      });
-      checked = null;
-      draw();
-      notify(a === "enable" ? "Source selected" : "Source saved");
-    }
-    if (a === "folder") await post("folder", { id });
-    if (a === "review") {
-      await post("review", { id });
-      await refresh();
-      draw();
-      return;
-    }
-    if (a === "save-version") {
-      if (!preview) throw Error("Render the current settings before saving");
-      const v = await post("save", { id: preview });
-      preview = pending = null;
-      await refresh();
-      openClip(v.id);
-      notify("New version saved");
-      return;
+      case "select": {
+        const source = state.sources.find((s) => s.id === id);
+        const result = await post("inspect", source.form);
+        if (page !== "sources") return;
+        sourceKind = source.form.kind;
+        checked = result;
+        draw();
+        $("#rights")?.focus();
+        return;
+      }
+      case "source-preview": {
+        const source = state.sources.find((s) => s.id === id);
+        const values = layoutValues(
+          new FormData($("#profile")),
+          source.form.settings,
+        );
+        if (!values.gameplayCrop) delete values.gameplayCrop;
+        const result = await post("source-preview", { id, settings: values });
+        if ($("#source-preview"))
+          $("#source-preview").innerHTML =
+            `<img class="source-frame" alt="Source layout preview"
+          src="/source-frame/${result.id}">${h("p", esc(result.reason))}`;
+        return;
+      }
+      case "stop":
+        await post("source", { id, stop: true });
+        notify("Monitoring stopped");
+        break;
+      case "enable":
+      case "save-source": {
+        const enable = act === "enable";
+        if (enable && !$("#rights")?.checked) {
+          notify("Confirm permission to capture and edit this source.");
+          $("#rights")?.focus();
+          return;
+        }
+        await post("source", { id, enable, save: !enable, rights: enable });
+        checked = null;
+        if ($("#checked")) $("#checked").innerHTML = "";
+        await refresh();
+        if (enable) location.hash = "overview";
+        notify(enable ? "Source selected" : "Source saved");
+        return;
+      }
+      case "folder":
+        await post("folder", { id });
+        return;
+      case "review":
+        await post("review", { id });
+        await refresh();
+        if (page === "clips" && selected === id) {
+          patchRegion("review-panel", decisions(clipNow()));
+          const c = clipNow();
+          $(".clip-status").innerHTML =
+            verdictBadge(c) +
+            h("span", esc(platformName(c.platform) + " · " + duration(c)));
+        }
+        notify("Review saved");
+        return;
+      case "save-version": {
+        if (!preview) throw Error("Render the current settings before saving.");
+        const version = await post("save", { id: preview });
+        preview = pending = null;
+        await refresh();
+        openClip(version.id);
+        notify("New version saved");
+        return;
+      }
     }
     await refresh();
-  } catch (err) {
-    notify(err.message);
+  } catch (error) {
+    notify(error.message);
+  } finally {
+    target.disabled = false;
   }
 });
-window.addEventListener("hashchange", route);
+
+window.addEventListener("hashchange", () => state && route(true));
+document.addEventListener(
+  "toggle",
+  (event) => {
+    const panel = event.target;
+    if (panel.dataset?.clipDetails && panel.open && !panel.dataset.loaded)
+      void loadClipDetails(panel);
+  },
+  true,
+);
 document.addEventListener(
   "loadedmetadata",
-  (e) => {
-    if (e.target.matches?.(".cut-player"))
-      e.target.currentTime = Number(e.target.dataset.cue);
+  (event) => {
+    if (event.target.matches?.(".cut-player"))
+      event.target.currentTime = Number(event.target.dataset.cue);
   },
   true,
 );
 document.addEventListener(
   "play",
-  (e) => {
-    if (e.target.matches?.(".cut-player"))
-      document.querySelectorAll(".cut-player").forEach((v) => {
-        if (v !== e.target) v.pause();
+  (event) => {
+    if (event.target.matches?.(".cut-player"))
+      document.querySelectorAll(".cut-player").forEach((video) => {
+        if (video !== event.target) video.pause();
       });
   },
   true,
 );
-refresh(true).catch((e) => notify(e.message));
-setInterval(() => refresh().catch((e) => notify(e.message)), 2000);
+document.addEventListener(
+  "error",
+  (event) => {
+    if (event.target.matches?.("video"))
+      notify("This video couldn’t play. Try downloading the MP4.");
+  },
+  true,
+);
+
+main.innerHTML = "<p class='loading' role='status'>Opening HypeClip…</p>";
+refresh().catch((error) => notify(error.message));
+setInterval(() => refresh().catch((error) => notify(error.message)), 2000);

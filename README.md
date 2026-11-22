@@ -10,14 +10,14 @@ Start the dashboard from PowerShell. Keep this terminal open and the PC awake wh
 pnpm --dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard
 ```
 
-1. Open **Sources**. Choose **Watchlist** to follow the 20 ranked creators, **Stream URL** for a particular broadcast, or **Local recording** for a file. A recording can use timestamped chat and the first frame’s UTC time, or media-only detection.
-2. Select **Check source**. Read the media and chat status, confirm your capture and editing permission, then choose **Monitor once**. For a source you want to keep, choose **Save source**, then **Select** beside it in **Your sources**. A new installation starts with no sources enabled.
-3. Open **Overview** to see current activity. The CLI and dashboard share two capture slots by default. An offline watchlist creator waits for an eligible broadcast. A source without accessible media shows the reason in **Sources**.
-4. Open **Clips** to play the MP4 and inspect the detector, Qwen and final decision. Choose **Needs review** to work through the queue. **Compare cuts** opens two exports of the same moment at the same source time. **Presentation** previews a new layout or caption treatment using cached media and speech. Saving creates a separate export.
+1. Choose **Choose a stream** on **Monitor**. Pick a channel or the entire **Watchlist**, paste a supported link, or select a **Local recording**.
+2. Select **Check source**, confirm your capture and editing permission, then choose **Monitor once**. A live link can produce several clips and can retry if capture fails. It stops when capture finishes normally or you press **Stop**. The full watchlist keeps looking for eligible streams until stopped. Recordings and archive intervals are scanned once for up to one clip.
+3. Use **Monitor** to follow capture, chat and clip progress or stop a source. The CLI and dashboard share two capture slots by default. Use **Technical details** to inspect errors and processing events.
+4. Open **Clips** to play and download finished MP4s. Choose **Needs review** to work through the queue. **Compare cuts** opens two exports of the same moment at the same source time. **Presentation** previews a new layout or caption treatment using cached media and speech. Saving creates a separate export.
 
-Local studio work needs no publishing account. The dashboard keeps publishing disabled. Copies exported by the dashboard are under your Windows Videos folder in `HypeClip\Dashboard`. Each clip shows its exact path and an **Open folder** button. Stop a source in **Sources** or stop the server with Ctrl+C.
+Local studio work needs no publishing account. Dashboard exports go in your Windows Videos folder under `HypeClip\Studio`. Use **Open folder** to locate an MP4. **Publishing** shows the Buffer connection, TikTok destination and separate CLI automatic-posting setting.
 
-**Starting at Windows sign-in is optional.** For a dedicated monitoring PC, create a Task Scheduler task for your Windows account with an **At log on** trigger. For **Program/script**, use the path printed by `(Get-Command pnpm.cmd).Source`. For **Add arguments**, enter `--dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard`. Set **If the task is already running** to **Do not start a new instance**. Start and test the watchlist in the dashboard first. At the next sign-in, open Overview and check the source state. Capture requires the PC to remain awake.
+**Starting at Windows sign-in is optional.** For a dedicated monitoring PC, create a Task Scheduler task for your Windows account with an **At log on** trigger. For **Program/script**, use the path printed by `(Get-Command pnpm.cmd).Source`. For **Add arguments**, enter `--dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard`. Set **If the task is already running** to **Do not start a new instance**. Start and test the watchlist in the dashboard first. At the next sign-in, open **Monitor** and check the source state. Capture requires the PC to remain awake.
 
 ### Which connections do I need?
 
@@ -29,7 +29,7 @@ Local studio work needs no publishing account. The dashboard keeps publishing di
 | Use TikTok LIVE | A playable live room or a creator-provided recording. Supply a timestamped chat export for chat detection. Native TikTok chat collection is unavailable. |
 | Publish through Buffer later | Configure Buffer and R2 only when you decide to publish. The dashboard never authorizes posting. |
 
-**Settings → Input connections** shows the adapter capabilities. From the checkout, run `pnpm hypeclip providers --check` to inspect this installation. Instructions for obtaining and checking each optional connection, including the current limits of Kick live polling and webhooks, are in the [provider setup guide](docs/monitor.md).
+**Sources → Stream chat** explains optional reader credentials. Run `pnpm hypeclip providers --check` to inspect this installation. [Provider setup guide](docs/monitor.md)
 
 ### How endings and review work
 
