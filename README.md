@@ -4,6 +4,8 @@ HypeClip is a local Windows studio for monitoring English-speaking GTA VI stream
 
 ## Install on Windows
 
+[Download HypeClip for Windows](https://ariyox.github.io/HypeClip/)
+
 1. Open the **HypeClip Setup** installer and follow the prompts. Use **HypeClip** in the Windows Start menu to open it again. With the ZIP version, choose **Extract All**, then double-click **Start HypeClip.cmd** inside the extracted **HypeClip** folder.
 2. If prompted, accept the Node.js install. In the browser, choose **Setup → Install tools and models**. Allow time for several GB of downloads on the first run. [Windows Package Manager](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
 3. Choose **Continue to Monitor** to try a local recording. Use **Quick start** in Setup for the first-clip walkthrough. [Quick start](Start%20Here.html)
@@ -60,6 +62,8 @@ Setup saves the optional connection values in `connections.json` under your Hype
 `pnpm hypeclip demo` renders and evaluates a local fixture. `pnpm verify:local` exercises speech, a real Ollama decision, an endpoint outage, and retry. The worker accepts `python -m workers.media --request <json-file> --result <json-file>`. [V1 contracts and examples](contracts/README.md)
 
 To build the Windows installer and ZIP from the current commit, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-windows.ps1`. The build verifies the portable NSIS compiler and writes both files under `.hypeclip\releases`. [NSIS releases](https://nsis.sourceforge.io/Download)
+
+The download page source is in `website/`. Run `node scripts/build-download-page.mjs <output-folder>` to stage it with the shared quick start guide and fonts for the `gh-pages` branch.
 
 ## From an authorized recording to a clip
 
