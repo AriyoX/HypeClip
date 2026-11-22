@@ -38,11 +38,46 @@ it("constrains schema and input, sends no file or source metadata, and gates vis
   expect(body.stream).toBe(false);
   expect(body.format.required).toContain("reviewFlags");
   expect(Object.keys(JSON.parse(body.messages[1].content))).toEqual([
+    "provenance",
     "transcript",
-    "nearbyChat",
+    "reasonOptions",
+    "timeBase",
     "detection",
   ]);
+  expect(JSON.parse(body.messages[1].content).provenance).toBe(
+    "Local synthetic fixture with simulated chat",
+  );
   expect(body.messages[0].content).toContain("untrusted");
+});
+it("retains the raw opinion and routes a visual claim with a valid speech citation to review", async () => {
+  setup();
+  const sentence = "Can I go inside?";
+  vi.stubGlobal("fetch", async () =>
+    Response.json({
+      done: true,
+      model: "test:local",
+      message: {
+        content: JSON.stringify({
+          ...decision,
+          reason: "The aircraft is visible on the HUD.",
+          evidence: ["S1"],
+          suggestedCaption: sentence,
+        }),
+      },
+    }),
+  );
+  const result = await evaluate(
+    { segments: [{ startMs: 100, endMs: 800, text: sentence }] },
+    spike,
+  );
+  expect(result.rawDecision?.decision).toBe("accept");
+  expect(result.decision?.decision).toBe("review");
+  expect(result.evidenceTrace?.resolved[0]).toMatchObject({
+    id: "S1",
+    startMs: 100,
+    endMs: 800,
+  });
+  expect(result.evidenceTrace?.issues.length).toBeGreaterThan(0);
 });
 it.each(["unreachable", "invalid", "missing", "timeout"])(
   "keeps %s evaluation from authorizing a post",

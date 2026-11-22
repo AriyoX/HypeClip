@@ -6,6 +6,8 @@ from fractions import Fraction
 from pathlib import Path
 
 from .errors import WorkerError
+from .stages import track
+from .split_screen import composition
 
 
 def binary(name: str) -> str:
@@ -15,18 +17,18 @@ def binary(name: str) -> str:
 
 def run_tool(name: str, args: list[str], code: str, cwd: Path | None = None) -> str:
     try:
-        completed = subprocess.run(
-            [binary(name), *args], cwd=cwd, capture_output=True,
-            encoding="utf-8", errors="replace", check=False,
-        )
+        with subprocess.Popen([binary(name), *args], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              encoding="utf-8", errors="replace") as child, track(child):
+            stdout, stderr = child.communicate()
+            code_value = child.returncode
     except FileNotFoundError as exc:
         raise WorkerError("MISSING_BINARY", f"{name} executable was not found.") from exc
     except OSError as exc:
         raise WorkerError("BINARY_START_FAILED", f"Could not start {name}: {exc}") from exc
-    if completed.returncode:
-        details = completed.stderr.strip()[-2000:] or f"exit status {completed.returncode}"
+    if code_value:
+        details = stderr.strip()[-2000:] or f"exit status {code_value}"
         raise WorkerError(code, f"{name}: {details}")
-    return completed.stdout
+    return stdout
 
 
 def milliseconds(value) -> int | None:
@@ -123,13 +125,19 @@ def cover(width: int, height: int) -> str:
     )
 
 
-def render_filter(width: int, height: int, layout: str, captioned: bool, duration: int) -> str:
+def render_filter(width: int, height: int, layout: str, captioned: bool, duration: int, overlay: bool = False,
+                  split_screen=None, scene=False, presentation=None) -> str:
     # Normalize display aspect, then cover any sub-frame gap from the accurate cut.
     base = (
         "scale='max(2,round(iw*sar/2)*2)':ih,setsar=1,"
         f"tpad=stop_mode=clone:stop_duration={seconds(duration)},fps=30:start_time=0"
     )
-    if layout == "center-crop":
+    if presentation and presentation.get("gameplayCrop") and layout != "split-screen":
+        from .split_screen import panel_crop
+        base += "," + panel_crop(presentation["gameplayCrop"])
+    if layout == "split-screen":
+        graph = composition(base, cover, width, height, split_screen)
+    elif layout == "center-crop":
         graph = f"{base},{cover(width, height)}"
     else:
         blur_w, blur_h = max(2, width // 12 * 2), max(2, height // 12 * 2)
@@ -144,7 +152,17 @@ def render_filter(width: int, height: int, layout: str, captioned: bool, duratio
             f"[foreground]{foreground}[picture];"
             "[canvas][picture]overlay=(W-w)/2:(H-h)/2:shortest=1"
         )
-    if captioned:
+    if presentation and (scene or captioned):
+        graph += ",ass=filename=subtitles.ass"
+    elif scene:
+        graph += ",ass=filename=scene.ass"
+    if overlay:
+        graph += (",drawtext=textfile=overlay.txt:expansion=none:font=Arial:fontsize=h/38:"
+                  "fontcolor=white:borderw=2:box=1:boxcolor=black@0.72:boxborderw=14:"
+                  "x=(w-tw)/2:y=h*0.20:enable='lt(t,3.2)'")
+    if captioned and not presentation and layout == "split-screen":
+        graph += ",ass=filename=subtitles.ass"
+    elif captioned and not presentation:
         # The process runs beside the SRT, so its name needs no filter or drive-letter escaping.
         graph += (
             ",subtitles=filename=subtitles.srt:force_style='FontName=Arial,FontSize=16,"
@@ -154,15 +172,21 @@ def render_filter(width: int, height: int, layout: str, captioned: bool, duratio
 
 
 def render(source: Path, target: Path, width: int, height: int, layout: str,
-           duration: int, captioned: bool, has_audio: bool) -> Media:
+           duration: int, captioned: bool, has_audio: bool, overlay=False, voice=None, split_screen=None, scene=False, presentation=None) -> Media:
+    graph = render_filter(width, height, layout, captioned, duration, overlay, split_screen, scene, presentation)
+    if voice:
+        graph += (f";[1:a]adelay={int(voice['startMs'])}:all=1[vocal];"
+                  "[0:a][vocal]amix=inputs=2:duration=first:normalize=0[mix]")
     run_tool("ffmpeg", [
         "-hide_banner", "-nostdin", "-v", "error", "-xerror",
         "-protocol_whitelist", "file", "-i", str(source),
+        *(["-protocol_whitelist", "file", "-i", voice["path"]] if voice else []),
         "-filter_complex_threads", "2",
-        "-filter_complex", render_filter(width, height, layout, captioned, duration),
-        "-map", "[out]", "-map", "0:a:0?", "-t", seconds(duration),
+        "-filter_complex", graph,
+        "-map", "[out]", "-map", "[mix]" if voice else "0:a:0?", "-t", seconds(duration),
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(target),
+        *(["-c:a", "copy"] if (layout == "split-screen" or presentation) and not voice else ["-c:a", "aac", "-b:a", "160k"]),
+        "-movflags", "+faststart", str(target),
     ], "RENDER_FAILED", cwd=target.parent)
     final = probe(target, "RENDER_INVALID")
     actual_audio = final.audio["codec_name"] if final.audio else None

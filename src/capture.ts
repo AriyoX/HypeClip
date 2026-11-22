@@ -1,4 +1,4 @@
-import { spawn, execFile } from "node:child_process";
+import { fork, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
   mkdirSync,
@@ -54,9 +54,10 @@ export async function capture(
   const ff = process.env.HYPECLIP_FFMPEG || process.env.FFMPEG || "ffmpeg";
   const source = join(dir, "recording.mkv"),
     index = join(dir, "completed.csv");
-  const child = spawn(
-    ff,
+  const child = fork(
+    new URL("./capture-child.mjs", import.meta.url),
     [
+      ff,
       "-hide_banner",
       "-loglevel",
       "error",
@@ -83,12 +84,12 @@ export async function capture(
       "csv",
       "segment-%08d.mkv",
     ],
-    { cwd: dir, stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
+    { cwd: dir, stdio: ["ignore", "ignore", "pipe", "ipc"], execArgv: [] },
   );
   let failure = "",
     finished = false;
-  child.stderr.setEncoding("utf8");
-  child.stderr.on("data", (s) => {
+  child.stderr!.setEncoding("utf8");
+  child.stderr!.on("data", (s) => {
     failure = (failure + s).slice(-1000);
   });
   const done = new Promise<void>((resolve) => {
@@ -183,7 +184,7 @@ export async function capture(
     if (finished && !signal.aborted)
       throw Error("FFmpeg input stopped: " + failure);
   } finally {
-    if (!finished) child.kill();
+    if (!finished && child.connected) child.disconnect();
     await done;
   }
 }

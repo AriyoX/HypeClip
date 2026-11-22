@@ -14,8 +14,8 @@ export function openDb(readOnly = false) {
     );
     atomic(db, () => {
       const v = db.prepare("PRAGMA user_version").get()!.user_version;
-      if (Number(v) > 5) throw Error("Unknown database version");
-      for (const n of [1, 2, 3, 4, 5])
+      if (Number(v) > 6) throw Error("Unknown database version");
+      for (const n of [1, 2, 3, 4, 5, 6])
         if (Number(v) < n)
           db.exec(
             readFileSync(
@@ -50,6 +50,20 @@ export function status() {
         .all(),
       intents: db.prepare("SELECT * FROM intents ORDER BY id DESC").all(),
       policy: db.prepare("SELECT * FROM policy").all(),
+      ...(Number(db.prepare("PRAGMA user_version").get()?.user_version) >= 6
+        ? {
+            liveSources: db
+              .prepare(
+                "SELECT id,anchor,head,ended FROM live_sources ORDER BY id",
+              )
+              .all(),
+            liveWindows: db
+              .prepare(
+                "SELECT id,source,destination,start,end,state,reason,triggerAt,readyAt,renderAt,decisionAt FROM live_windows ORDER BY triggerAt DESC",
+              )
+              .all(),
+          }
+        : {}),
       cooldowns: db.prepare("SELECT * FROM cooldown").all(),
     };
   } finally {

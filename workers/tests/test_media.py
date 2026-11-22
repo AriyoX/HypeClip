@@ -4,13 +4,14 @@ import re
 import subprocess
 import sys
 import tempfile
+from contextlib import nullcontext
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
-from media.job import atomic_json, sha256
+from media.job import atomic_json, process, sha256
 from media.speech import Cue, srt
 from media.video import binary, probe, run_tool
 from workers.media import CONTRACT, main
@@ -112,6 +113,120 @@ class MediaWorkerTests(unittest.TestCase):
         red, green, blue = fit[sample:sample + 3]
         self.assertGreater(red, max(green, blue) + 120)
 
+    def test_native_portrait_keeps_existing_divider_and_clean_picture(self):
+        import numpy as np
+        source = self.root / "native portrait.mp4"
+        run_tool("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=cyan:s=180x320:d=1",
+                 "-vf", "drawbox=x=0:y=100:w=iw:h=5:color=yellow:t=fill", str(source)], "TEST")
+        path = write_request(self.root, "native", source, start=0, end=800)
+        request = self.read_json(path)
+        request["output"].update(width=360, height=640, layout="split-screen",
+                                 splitScreen={"captions": "clean", "preserveDivider": True},
+                                 speech={"segments": [], "captions": [], "words": []})
+        atomic_json(path, request)
+        result = self.invoke(path, "native portrait")
+        frame = np.frombuffer(self.frame(result["verticalPath"], "0.3"), np.uint8).reshape(640, 360, 3)
+        self.assertGreater(int(frame[205, 180, 0]), 200)
+        self.assertLess(int(frame[205, 180, 2]), 30)
+        self.assertLess(int(frame[339, 180, 0]), 30)
+        self.assertGreater(int(frame[339, 180, 2]), 200)
+
+    def test_split_screen_panels_and_active_word_on_divider(self):
+        import numpy as np
+
+        source = self.root / "panel colors.mp4"
+        run_tool("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=cyan:s=320x180:d=2",
+                 "-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono", "-t", "2", "-vf",
+                 "drawbox=x=160:y=0:w=160:h=180:color=yellow:t=fill", str(source)], "TEST")
+        path = write_request(self.root, "panels", source, start=0, end=1700)
+        req = self.read_json(path)
+        words = [{"text": "Left", "startMs": 100, "endMs": 800},
+                 {"text": "right", "startMs": 800, "endMs": 1500}]
+        req["output"].update(width=360, height=640, layout="split-screen",
+                             splitScreen={"facecam": [0, 0, .5, 1], "gameplay": [.5, 0, .5, 1],
+                                          "fraction": .5, "captions": "words", "fontSize": 48},
+                             speech={"segments": words, "captions": [], "words": words})
+        atomic_json(path, req)
+        result = self.invoke(path, "panel captions")
+        centers = []
+        for t in ["0.4", "1.0"]:
+            frame = np.frombuffer(self.frame(result["verticalPath"], t), np.uint8).reshape(640, 360, 3)
+            self.assertGreater(frame[100, 180, 2], 220)
+            self.assertLess(frame[500, 180, 2], 40)
+            self.assertGreater(frame[320, 8, 0], 200)
+            self.assertLess(frame[320, 8, 1], 55)
+            y, x = np.where((frame[:, :, 0] > 80) & (frame[:, :, 1] < 100) & (frame[:, :, 2] > 190))
+            self.assertGreater(len(x), 150)
+            self.assertLess(abs(y.mean() - 320), 10)
+            centers.append(x.mean())
+        self.assertGreater(centers[1] - centers[0], 50)
+        req["output"]["splitScreen"]["captions"] = "clean"
+        clean = process(req)
+        self.assertNotEqual(clean["sha256"], result["sha256"])
+        self.assertEqual(Path(clean["subtitlePath"]).read_text(), "")
+        # Decode both sides of the upper caption boundary with the independent seam layer active.
+        req["output"]["sceneCaption"] = {"text":"At the hoop", "startMs":0, "endMs":750, "panelY":.2}
+        for treatment in ("clean", "words"):
+            req["output"]["splitScreen"]["captions"] = treatment
+            layered = process(req)
+            before, after = [np.frombuffer(self.frame(layered["verticalPath"], t), np.uint8).reshape(640,360,3)
+                             for t in ("0.4","1.0")]
+            self.assertGreater((before[40:90].min(axis=2)>190).sum(), 25)
+            self.assertEqual((after[40:90].min(axis=2)>190).sum(), 0)
+            self.assertEqual(bool(Path(layered["subtitlePath"]).read_text()), treatment=="words")
+
+    def test_studio_card_clears_and_dialogue_stays_below_the_divider(self):
+        import numpy as np
+
+        source = self.root / "studio-source.mp4"
+        run_tool("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=0x263b56:s=320x180:d=2",
+                 "-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono", "-t", "2", "-c:v", "libx264",
+                 "-c:a", "aac", str(source)], "STUDIO_FIXTURE")
+        req = self.read_json(write_request(self.root, "studio", source, start=0, end=1800))
+        cue = {"startMs": 100, "endMs": 1300, "text": "Still here"}
+        req["output"].update(width=360, height=640, layout="split-screen",
+                             splitScreen={"facecam": [0, 0, .5, 1], "gameplay": [.5, 0, .5, 1],
+                                          "fraction": .5, "captions": "words"},
+                             presentation={"dialogue": "words", "subtitleY": .77},
+                             sceneCaption={"text": "At the hoop", "panelY": .86, "startMs": 0, "endMs": 650},
+                             speech={"segments": [cue], "captions": [cue], "words": [cue]})
+        result = process(req)
+        def whites(t):
+            return (np.frombuffer(self.frame(result["verticalPath"], t), np.uint8)
+                    .reshape(640, 360, 3).min(axis=2) > 185)
+        during, later = whites("0.3"), whites("1")
+        self.assertGreater(during[240:305].sum(), 300)
+        self.assertEqual(later[240:305].sum(), 0)
+        self.assertGreater(later[475:510].sum(), 10)
+        self.assertEqual(later[300:340].sum(), 0)
+        req["output"]["presentation"]["dialogue"] = "clean"
+        clean = process(req)
+        self.assertIn("Still here", Path(clean["subtitlePath"]).read_text())
+        self.assertTrue(Path(result["verticalPath"]).is_file())
+
+    def test_timed_optional_voice_uses_only_its_slot_and_off_keeps_original(self):
+        import wave
+        import numpy as np
+
+        request = self.read_json(write_request(self.root, "voice slot", self.root / "silent source.mp4",
+                                               start=1000, end=5000, layout="fit-pad"))
+        request["output"].update(speech={"segments": [], "captions": []}, overlay="Watch the timer")
+        original = process(request)
+        voice = self.root / "slot sound.wav"
+        run_tool("ffmpeg", ["-v","error","-f","lavfi","-i","sine=frequency=590:duration=0.7",
+                            "-ar","24000",str(voice)], "VOICE_FIXTURE")
+        request["output"]["voice"] = {"path":str(voice), "startMs":1500}
+        with_voice = process(request)
+        self.assertNotEqual(original["sha256"], with_voice["sha256"])
+        for i, result in enumerate([original,with_voice]):
+            wav = self.root / f"slot-check-{i}.wav"
+            run_tool("ffmpeg", ["-v","error","-i",result["verticalPath"],"-vn","-ar","8000","-ac","1",str(wav)], "DECODE")
+            with wave.open(str(wav)) as reader:
+                samples = np.abs(np.frombuffer(reader.readframes(reader.getnframes()), "<i2").astype(float))
+            self.assertLess(samples[:8000].max(), 10)
+            self.assertLess(samples[20000:].max(), 10)
+            self.assertEqual(samples[12800:16800].max() > 100, bool(i))
+
     def test_silence_center_crop_and_interrupted_cache(self):
         source = self.root / "silent source.mp4"
         request = write_request(self.root, "center", source, start=26300, end=29100, layout="center-crop")
@@ -179,6 +294,23 @@ class MediaWorkerTests(unittest.TestCase):
         self.assertTrue(failure["error"]["retryable"])
         completed = self.invoke(request, "interrupted retry")
         self.assertEqual(completed["qualityFlags"], ["silence"])
+
+    def test_live_restart_reuses_completed_transcription(self):
+        source = self.root / "speech source.mp4"
+        path = write_request(self.root, "checkpoint", source, start=36500, end=40500)
+        request = self.read_json(path)
+        cues = [Cue(500, 2200, "Checkpoint speech")]
+        with (patch.dict(os.environ, {"HYPECLIP_STAGE_CONTROL": "test"}),
+              patch("media.job.stage", lambda name: nullcontext()),
+              patch("media.job.transcribe", return_value=(cues, cues)) as speech):
+            with patch("media.job.render", side_effect=InterruptedError("interrupted encode")):
+                with self.assertRaises(InterruptedError):
+                    process(request)
+            with patch("media.job.extract", side_effect=AssertionError("prepared cut lost")):
+                restored = process(request)
+            self.assertEqual(speech.call_count, 1)
+            self.assertEqual(restored["sha256"], sha256(Path(restored["verticalPath"])))
+            self.assertIn("Checkpoint speech", Path(restored["subtitlePath"]).read_text())
 
     def test_caption_controls_are_literal(self):
         original = r"{\an8}<i>text</i> &amp; \N"

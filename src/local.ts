@@ -50,7 +50,7 @@ export function safeMessage(error: unknown) {
     if (value && /TOKEN|SECRET|PASSWORD|ACCESS_KEY|API_KEY/i.test(key))
       message = message.split(value).join("[redacted]");
   }
-  return message.slice(0, 1500);
+  return message.replace(/https?:\/\/[^\s]+\?[^\s]+/gi, "[provider URL]").slice(0, 1500);
 }
 export function localModel() {
   const c = existsSync(modelFile()) ? jsonFile(modelFile()) : {};

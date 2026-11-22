@@ -96,7 +96,7 @@ def caption_cues(words: list[Cue], fallback: Cue, line_width: int) -> list[Cue]:
     return captions
 
 
-def transcribe(samples, limit: int, line_width: int) -> tuple[list[Cue], list[Cue]]:
+def transcribe(samples, limit: int, line_width: int, timed_words=None) -> tuple[list[Cue], list[Cue]]:
     model = load_model()
     transcript, captions = [], []
     try:
@@ -109,11 +109,13 @@ def transcribe(samples, limit: int, line_width: int) -> tuple[list[Cue], list[Cu
             if segment_cue is None:
                 continue
             transcript.append(segment_cue)
-            words = [
-                word_cue
-                for word in segment.words or []
-                if (word_cue := cue(word.start, word.end, word.word, limit)) is not None
-            ]
+            words = []
+            for word in segment.words or []:
+                word_cue = cue(word.start, word.end, word.word, limit)
+                if word_cue is not None:
+                    words.append(word_cue)
+                    if timed_words is not None:
+                        timed_words.append((word_cue, float(word.probability)))
             captions.extend(caption_cues(words, segment_cue, line_width))
     except Exception as exc:
         raise WorkerError("TRANSCRIPTION_FAILED", f"Local transcription failed: {exc}") from exc

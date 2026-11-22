@@ -1,5 +1,8 @@
+import { manifest, runLive } from "./live.ts";
+import { claimCaptureSlot } from "./capture-slots.ts";
+import { jsonFile } from "./local.ts";
 import { capture } from "./capture.ts";
-import { collect } from "./twitch.ts";
+import { collect, collectMany } from "./twitch.ts";
 import { timestamp } from "./detector.ts";
 import { demo } from "./demo.ts";
 import { Command, Option } from "commander";
@@ -26,6 +29,56 @@ function timing(c: Command) {
     );
 }
 export function sessionCommands(cli: Command) {
+  cli
+    .command("live-multi")
+    .requiredOption("--manifest <json>")
+    .option("--once", "Stop each input after its first decision")
+    .action(async (o) => {
+      const config = manifest.parse(jsonFile(o.manifest));
+      const db = openDb()!;
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      process.once("SIGINT", stop);
+      try {
+        await runLive(
+          db,
+          config,
+          controller.signal,
+          (e) => console.log(JSON.stringify({ at: Date.now(), ...e })),
+          o.once,
+        );
+      } finally {
+        process.off("SIGINT", stop);
+        db.close();
+      }
+    });
+  cli
+    .command("collect-multi")
+    .requiredOption(
+      "--manifest <json>",
+      "Explicitly authorized broadcaster IDs, sessions and chat paths",
+    )
+    .action(async (o) => {
+      const channels = z
+        .array(
+          z.object({
+            broadcaster: z.string().min(1),
+            session: z.string().min(1),
+            path: z.string().min(1),
+          }),
+        )
+        .min(1)
+        .max(2)
+        .parse(jsonFile(o.manifest));
+      const ctrl = new AbortController();
+      const stop = () => ctrl.abort();
+      process.once("SIGINT", stop);
+      try {
+        print(await collectMany(channels, ctrl.signal));
+      } finally {
+        process.off("SIGINT", stop);
+      }
+    });
   timing(cli.command("live"))
     .requiredOption("--session <id>")
     .requiredOption("--port <udp-port>", "Local MPEG-TS input port", integer)
@@ -36,7 +89,9 @@ export function sessionCommands(cli: Command) {
       const stop = () => ctrl.abort();
       process.once("SIGINT", stop);
       const db = openDb()!;
+      let releaseSlot;
       try {
+        releaseSlot=claimCaptureSlot(undefined, "udp:" + o.port);
         await capture(
           db,
           {
@@ -54,6 +109,7 @@ export function sessionCommands(cli: Command) {
           print,
         );
       } finally {
+        releaseSlot?.();
         process.removeListener("SIGINT", stop);
         db.close();
       }

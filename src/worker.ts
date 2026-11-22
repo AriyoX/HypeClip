@@ -12,6 +12,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { jsonFile, writeJson, hashFile } from "./local.ts";
 import { probe } from "./probe.ts";
+import { controlledWorker, type Acquire } from "./stages.ts";
+import type { Settings } from "./editorial.ts";
 const ajv = new Ajv2020();
 const schema = (name: string) =>
   ajv.compile(
@@ -34,7 +36,22 @@ export interface Request {
     endMs: number;
     outputDir: string;
   };
-  output: { width: number; height: number; layout: "fit-pad" | "center-crop" };
+  output: {
+    width: number;
+    height: number;
+    layout: "fit-pad" | "center-crop" | "split-screen";
+    presentation?: { dialogue: "clean" | "words"; subtitleY: number; gameplayCrop?: number[] };
+    splitScreen?: Settings["splitScreen"];
+    overlay?: string;
+    sceneCaption?: {text:string;startMs:number;endMs:number;panelY:number};
+    speech?: {
+      withheld?: boolean;
+      segments: Transcript["segments"];
+      captions: Transcript["segments"];
+      words?: Transcript["segments"];
+    };
+    voice?: { path: string; startMs: number };
+  };
 }
 export interface Result {
   version: 1;
@@ -56,19 +73,57 @@ export function checkRequest(r: Request) {
 }
 const repo = fileURLToPath(new URL("../", import.meta.url));
 export class InvalidWorkerOutput extends Error {}
-export async function render(r: Request): Promise<Result> {
+export function workerEnv() {
+  // Allowlist only environment needed by Python, multimedia tools and local models.
+  const allow =
+    /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|SYSTEMDRIVE|COMSPEC|TEMP|TMP|TMPDIR|HOME|USERPROFILE|LOCALAPPDATA|APPDATA|PROGRAMDATA|PROGRAMFILES.*|LANG|LC_ALL|VIRTUAL_ENV|CUDA_PATH.*|HF_HOME|HF_HUB_OFFLINE|XDG_CACHE_HOME|FFMPEG|FFPROBE|HYPECLIP_(?:FFMPEG|FFPROBE|WHISPER_[A-Z_]+))$/i;
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([k]) => allow.test(k)),
+  );
+}
+export async function runWorkerModule(
+  module: string,
+  args: string[],
+  acquire?: Acquire,
+  cancel?: AbortSignal,
+) {
+  const cwd = process.env.HYPECLIP_WORKER_ROOT || repo;
+  const python =
+    process.env.HYPECLIP_PYTHON ||
+    join(
+      cwd,
+      ".venv",
+      process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
+    );
+  const env = workerEnv();
+  if (acquire)
+    return controlledWorker(
+      python,
+      ["-m", module, ...args],
+      cwd,
+      env,
+      acquire,
+      cancel,
+    );
+  await promisify(execFile)(python, ["-m", module, ...args], {
+    cwd,
+    env,
+    windowsHide: true,
+    timeout: 3600000,
+  });
+}
+export async function render(
+  r: Request,
+  acquire?: Acquire,
+  cancel?: AbortSignal,
+): Promise<Result> {
   checkRequest(r);
   const dir = r.candidate.outputDir;
   mkdirSync(dir, { recursive: true });
   const input = join(dir, "request.json"),
     output = join(dir, "result.json");
   writeJson(input, r);
-  // Allowlist only environment needed by Python, multimedia tools and local models.
-  const allow =
-    /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|SYSTEMDRIVE|COMSPEC|TEMP|TMP|TMPDIR|HOME|USERPROFILE|LOCALAPPDATA|APPDATA|PROGRAMDATA|PROGRAMFILES.*|LANG|LC_ALL|VIRTUAL_ENV|CUDA_PATH.*|HF_HOME|HF_HUB_OFFLINE|XDG_CACHE_HOME|FFMPEG|FFPROBE|HYPECLIP_(?:FFMPEG|FFPROBE|WHISPER_[A-Z_]+))$/i;
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(([k]) => allow.test(k)),
-  );
+  const env = workerEnv();
   const cwd = process.env.HYPECLIP_WORKER_ROOT || repo;
   const venv = join(
     cwd,
@@ -79,17 +134,27 @@ export async function render(r: Request): Promise<Result> {
     process.env.HYPECLIP_PYTHON || (existsSync(venv) ? venv : "python");
   let failed = false;
   try {
-    await promisify(execFile)(
-      python,
-      ["-m", "workers.media", "--request", input, "--result", output],
-      {
+    if (acquire)
+      await controlledWorker(
+        python,
+        ["-m", "workers.media", "--request", input, "--result", output],
         cwd,
         env,
-        windowsHide: true,
-        timeout: 60 * 60 * 1000,
-        maxBuffer: 1024 * 1024,
-      },
-    );
+        acquire,
+        cancel,
+      );
+    else
+      await promisify(execFile)(
+        python,
+        ["-m", "workers.media", "--request", input, "--result", output],
+        {
+          cwd,
+          env,
+          windowsHide: true,
+          timeout: 60 * 60 * 1000,
+          maxBuffer: 1024 * 1024,
+        },
+      );
   } catch {
     failed = true;
   }
@@ -167,7 +232,12 @@ export async function validateOutput(
   const srt = readFileSync(b.subtitlePath, "utf8")
     .replace(/^\uFEFF/, "")
     .trim();
-  if (data.segments.length && !srt) throw Error("Missing subtitle cues");
+  const expectsSubtitles =
+    r.output.layout === "split-screen"
+      ? r.output.splitScreen?.captions !== "clean" &&
+        !!r.output.speech?.words?.length
+      : data.segments.length > 0;
+  if (expectsSubtitles && !srt) throw Error("Missing subtitle cues");
   for (const block of srt ? srt.split(/\r?\n\s*\r?\n/) : []) {
     const lines = block.split(/\r?\n/);
     const match = lines[1]?.match(

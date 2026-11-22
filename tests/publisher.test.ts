@@ -189,12 +189,9 @@ it("persists claims across restart and never recreates an ambiguous post", async
   });
 });
 it("reserves the cap atomically and checks auto-off before creation", async () => {
-  db.prepare("INSERT INTO policy(session,source,channel,cap) VALUES(?,?,?,?)").run(
-    "stream",
-    "source",
-    "test",
-    1,
-  );
+  db.prepare(
+    "INSERT INTO policy(session,source,channel,cap) VALUES(?,?,?,?)",
+  ).run("stream", "source", "test", 1);
   const a = adapter();
   const auto = { session: "stream", source: "source" };
   await publish(db, { ...options, auto }, a);
@@ -236,4 +233,32 @@ it("keeps fixtures and invalid video input away from live transport", async () =
     publish(db, { ...options, path: "tests/fixtures/recording.mp4" }, a),
   ).rejects.toThrow("portrait");
   expect(a.provider.channel).not.toHaveBeenCalled();
+});
+it("shares one atomic destination budget across simultaneous broadcasts", async () => {
+  for (const session of ["left", "right"])
+    db.prepare(
+      "INSERT INTO policy(session,source,channel,cap) VALUES(?,?,?,1)",
+    ).run(session, session, "test");
+  const a = adapter(),
+    other = openDb()!;
+  try {
+    const attempts = await Promise.allSettled([
+      publish(db, { ...options, auto: { session: "left", source: "left" } }, a),
+      publish(
+        other,
+        {
+          ...options,
+          highlight: "second",
+          path: "tests/fixtures/cut-vertical.mp4",
+          auto: { session: "right", source: "right" },
+        },
+        a,
+      ),
+    ]);
+    expect(attempts.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(db.prepare("SELECT count(*) n FROM intents").get()?.n).toBe(1);
+    expect(a.provider.create).toHaveBeenCalledTimes(1);
+  } finally {
+    other.close();
+  }
 });

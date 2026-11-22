@@ -1,5 +1,8 @@
+import { prepareEdit, type Editorial } from "./editorial.ts";
+import type { Acquire } from "./stages.ts";
+
 import { randomUUID } from "node:crypto";
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { atomic } from "./db.ts";
@@ -12,7 +15,13 @@ import { probe } from "./probe.ts";
 import type { Intent } from "./publisher.ts";
 import type { Mode } from "./buffer.ts";
 import { publish, liveAdapter, reconcile } from "./publisher.ts";
-import { safeMessage, stateDir, fixturePath } from "./local.ts";
+import {
+  jsonFile,
+  writeJson,
+  safeMessage,
+  stateDir,
+  fixturePath,
+} from "./local.ts";
 export const runtime = { render, evaluate, publisher: liveAdapter };
 export interface Session {
   session: string;
@@ -27,6 +36,7 @@ export interface Session {
   layout: "fit-pad" | "center-crop";
 }
 interface Details {
+  editorial?: Editorial;
   request: Request;
   spike: Spike;
   rights: boolean;
@@ -41,7 +51,8 @@ export function enable(
   rights: boolean,
   mode: Mode = "addToQueue",
 ) {
-  source = realpathSync(source);
+  if (!/^udp:\/\/127\.0\.0\.1:(\d+)$/.test(source))
+    source = realpathSync(source);
   if (
     !rights ||
     fixturePath(source) ||
@@ -62,6 +73,11 @@ export function enable(
     db.prepare(
       "INSERT INTO policy(session,source,channel,cap,mode) VALUES(?,?,?,?,?) ON CONFLICT(session) DO UPDATE SET source=excluded.source,channel=excluded.channel,cap=excluded.cap,mode=excluded.mode",
     ).run(session, source, channel, cap, mode);
+    // Explicitly enabling this recording can assign its previously unaddressed
+    // review jobs. An existing destination snapshot is immutable.
+    db.prepare(
+      "UPDATE jobs SET destination=?,destinationMode=? WHERE session=? AND source=? AND destination IS NULL AND state='review'",
+    ).run(channel, mode, session, source);
   });
 }
 function snapshot(db: DatabaseSync, id: string) {
@@ -85,6 +101,8 @@ export async function processJob(
   id: string,
   rt = runtime,
   retry = false,
+  acquire?: Acquire,
+  signal?: AbortSignal,
 ) {
   const linked = db
     .prepare(
@@ -158,6 +176,63 @@ export async function processJob(
   try {
     let result: Result;
     const request = details.request;
+    if (details.editorial) {
+      update("rendering");
+      const plan = await prepareEdit(
+        request,
+        details.spike,
+        details.editorial,
+        acquire,
+        signal,
+      );
+      const started = Date.now();
+      const rendered = await rt.render(plan.cut);
+      await validateOutput(plan.cut, rendered);
+      const directory = request.candidate.outputDir;
+      const receipt = join(directory, "edit.json");
+      const elapsed = Date.now() - started;
+      const previous =
+        job.result &&
+        JSON.parse(String(job.result)).sha256 === rendered.sha256 &&
+        existsSync(receipt)
+          ? jsonFile(receipt)
+          : undefined;
+      writeJson(receipt, {
+        ...plan.edit,
+        renderMs: previous?.renderMs ?? elapsed,
+        workerCheckMs: elapsed,
+        evaluation: plan.evaluation,
+      });
+      writeFileSync(join(directory, "overlay.txt"), plan.edit.overlay, "utf8");
+      writeFileSync(join(directory, "caption.txt"), plan.edit.caption, "utf8");
+      atomic(db, () => {
+        db.prepare(
+          "UPDATE jobs SET result=?,evaluation=? WHERE id=? AND owner=?",
+        ).run(
+          JSON.stringify(rendered),
+          JSON.stringify(plan.evaluation),
+          id,
+          owner,
+        );
+        db.prepare(
+          "INSERT INTO evaluations(job,evaluatedAt,provider,model,outcome) VALUES(?,?,?,?,?)",
+        ).run(
+          id,
+          new Date().toISOString(),
+          "ollama",
+          plan.evaluation.model,
+          JSON.stringify(plan.evaluation),
+        );
+        update(
+          details.spike.mode !== "operator" &&
+            plan.evaluation.decision?.decision === "reject"
+            ? "rejected"
+            : "review",
+          plan.evaluation.error || plan.edit.validationReason || plan.edit.rationale,
+        );
+      });
+      return snapshot(db, id);
+    }
     if (job.result) {
       result = JSON.parse(String(job.result));
     } else {
@@ -170,7 +245,11 @@ export async function processJob(
       "UPDATE jobs SET result=?,state='evaluating' WHERE id=? AND owner=?",
     ).run(JSON.stringify(result), id, owner);
     phase = "review";
-    const evaluation = await rt.evaluate(transcript, details.spike);
+    const evaluation = await rt.evaluate(
+      transcript,
+      details.spike,
+      details.fixture,
+    );
     atomic(db, () => {
       const outcome = JSON.stringify(evaluation);
       db.prepare(
@@ -221,6 +300,8 @@ export async function processJob(
         details.fixture ||
         !evaluation.verified ||
         !policy ||
+        policy.channel !== job.destination ||
+        policy.mode !== job.destinationMode ||
         policy.channel !== process.env.BUFFER_CHANNEL_ID
       ) {
         update(
@@ -289,6 +370,8 @@ export async function processSession(
     Number(fixture),
   ] as const;
   atomic(db, () => {
+    if (db.prepare("SELECT id FROM live_sources WHERE id=?").get(s.session))
+      throw Error("This ID belongs to a concurrent broadcast");
     db.prepare("INSERT OR IGNORE INTO sessions VALUES(?,?,?,?,?,?)").run(
       ...session,
     );
@@ -341,8 +424,8 @@ export async function processSession(
           .get(s.session, source, process.env.BUFFER_CHANNEL_ID || ""),
     };
     db.prepare(
-      "INSERT OR IGNORE INTO jobs(id,session,source,state,details) VALUES(?,?,?,'queued',?)",
-    ).run(id, s.session, source, JSON.stringify(details));
+      "INSERT OR IGNORE INTO jobs(id,session,source,state,details,destination,destinationMode) SELECT ?,?,?,'queued',?,p.channel,p.mode FROM (SELECT 1) a LEFT JOIN policy p ON p.session=? AND p.source=?",
+    ).run(id, s.session, source, JSON.stringify(details), s.session, source);
     records.push(await processJob(db, id, rt));
   }
   return records;

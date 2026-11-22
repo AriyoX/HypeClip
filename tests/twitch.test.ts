@@ -1,5 +1,13 @@
 import { it, expect, vi } from "vitest";
-import { listen, notification, handoffUrl } from "../src/twitch.ts";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  collectMany,
+  listen,
+  notification,
+  handoffUrl,
+} from "../src/twitch.ts";
 it("preserves raw nanoseconds, receipt timestamp and both Twitch IDs", () => {
   const ts = "2026-01-01T00:01:00.123456789Z",
     received = "2026-01-01T00:01:01Z";
@@ -69,4 +77,81 @@ it("subscribes once and keeps old socket through handoff welcome", async () => {
   expect(subscribe).toHaveBeenCalledOnce();
   ctrl.abort();
   await task;
+});
+
+it("multiplexes two explicit mock subscriptions and routes duplicate IDs per source", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "hc-mux-"));
+  const sockets: EventTarget[] = [];
+  class MockSocket extends EventTarget {
+    constructor() {
+      super();
+      sockets.push(this);
+    }
+    close() {}
+  }
+  const subscribed: string[] = [];
+  const ctrl = new AbortController();
+  try {
+    vi.stubEnv("TWITCH_USER_TOKEN", "mock-token");
+    vi.stubEnv("HYPECLIP_ISOLATED", "");
+    vi.stubGlobal("WebSocket", MockSocket);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit) => {
+        if (url.endsWith("/validate"))
+          return Response.json({
+            client_id: "mock",
+            user_id: "test",
+            scopes: ["user:read:chat"],
+          });
+        subscribed.push(
+          JSON.parse(String(init.body)).condition.broadcaster_user_id,
+        );
+        return new Response(null, { status: 202 });
+      }),
+    );
+    const channels = ["a", "b"].map((broadcaster) => ({
+      broadcaster,
+      session: broadcaster,
+      path: join(dir, broadcaster + ".jsonl"),
+    }));
+    const task = collectMany(channels, ctrl.signal);
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    const frame = (data: unknown) =>
+      sockets[0].dispatchEvent(
+        new MessageEvent("message", { data: JSON.stringify(data) }),
+      );
+    frame({
+      metadata: { message_type: "session_welcome" },
+      payload: { session: { id: "test", keepalive_timeout_seconds: 20 } },
+    });
+    await vi.waitFor(() => expect(subscribed).toEqual(["a", "b"]));
+    for (const broadcaster of ["a", "b", "a"]) {
+      frame({
+        metadata: {
+          message_type: "notification",
+          subscription_type: "channel.chat.message",
+          message_id: "duplicate",
+          message_timestamp: new Date().toISOString(),
+        },
+        payload: {
+          event: {
+            broadcaster_user_id: broadcaster,
+            message_id: "message",
+            chatter_user_id: "mock",
+            message: { text: broadcaster, fragments: [] },
+          },
+        },
+      });
+    }
+    ctrl.abort();
+    expect((await task).map((s) => s.messages)).toEqual([1, 1]);
+    for (const c of channels)
+      expect(JSON.parse(readFileSync(c.path, "utf8")).text).toBe(c.broadcaster);
+  } finally {
+    ctrl.abort();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

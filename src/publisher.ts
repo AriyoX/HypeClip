@@ -114,8 +114,22 @@ function reserve(db: DatabaseSync, o: Options, hash: string, url: string) {
             "SELECT count(*) AS n FROM intents WHERE channel=? AND session=?",
           )
           .get(o.channel, o.auto.session)!;
-        if (!policy || Number(used.n) >= Number(policy.cap))
-          throw Error("Auto-publish disabled or session cap reached");
+        const budget = db
+          .prepare("SELECT min(cap) cap FROM policy WHERE channel=?")
+          .get(o.channel)!;
+        const total = db
+          .prepare(
+            "SELECT count(*) n FROM intents WHERE channel=? AND session IS NOT NULL",
+          )
+          .get(o.channel)!;
+        if (
+          !policy ||
+          Number(used.n) >= Number(policy.cap) ||
+          Number(total.n) >= Number(budget.cap)
+        )
+          throw Error(
+            "Auto-publish disabled or session cap reached (shared destination budget)",
+          );
       }
       id = Number(
         db

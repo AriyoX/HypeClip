@@ -2,11 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "version",
-    "candidate",
-    "output"
-  ],
+  "required": ["version", "candidate", "output"],
+  "$defs": {
+    "crop": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": { "type": "number", "minimum": 0, "maximum": 1 }
+    }
+  },
   "properties": {
     "version": {
       "const": 1
@@ -52,11 +54,10 @@
     "output": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "width",
-        "height",
-        "layout"
-      ],
+      "required": ["width", "height", "layout"],
+      "if": { "properties": { "layout": { "const": "split-screen" } } },
+      "then": { "required": ["splitScreen"] },
+      "else": { "not": { "required": ["splitScreen"] } },
       "properties": {
         "width": {
           "type": "integer",
@@ -67,10 +68,114 @@
           "minimum": 1
         },
         "layout": {
-          "enum": [
-            "center-crop",
-            "fit-pad"
-          ]
+          "enum": ["center-crop", "fit-pad", "split-screen"]
+        },
+        "presentation": {
+          "type": "object", "additionalProperties": false, "required": ["dialogue", "subtitleY"],
+          "properties": {
+            "dialogue": {"enum":["words","clean"]}, "subtitleY":{"type":"number","minimum":0.60,"maximum":0.86},
+            "gameplayCrop": {"$ref":"#/$defs/crop"}
+          }
+        },
+        "splitScreen": {
+          "type": "object", "additionalProperties": false, "required": ["captions"],
+          "dependentRequired": { "facecam": ["gameplay"], "gameplay": ["facecam"] },
+          "properties": {
+            "facecam": { "$ref": "#/$defs/crop" },
+            "gameplay": { "$ref": "#/$defs/crop" },
+            "hud": { "$ref": "#/$defs/crop" },
+            "fraction": { "type": "number", "minimum": 0.2, "maximum": 0.8 },
+            "preserveDivider": { "type": "boolean" },
+            "captionOffset": { "type": "integer", "minimum": -480, "maximum": 480 },
+            "fontSize": { "type": "integer", "minimum": 24, "maximum": 150 },
+            "outline": { "type": "integer", "minimum": 1, "maximum": 16 },
+            "highlightColor": { "type": "string", "pattern": "^#[a-fA-F0-9]{6}$" },
+            "captions": { "enum": ["auto", "words", "clean"] }
+          }
+        },
+        "overlay": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "sceneCaption": {
+          "type": "object", "additionalProperties": false,
+          "required": ["text","startMs","endMs","panelY"],
+          "properties": {
+            "text": {"type":"string","minLength":1,"maxLength":62,"pattern":"^[^\r\n]+$"},
+            "startMs":{"type":"integer","minimum":0},"endMs":{"type":"integer","minimum":1},
+            "panelY":{"type":"number","minimum":0.08,"maximum":0.92}
+          }
+        },
+        "speech": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["segments", "captions"],
+          "properties": {
+            "segments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["startMs", "endMs", "text"],
+                "properties": {
+                  "startMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endMs": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "captions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["startMs", "endMs", "text"],
+                "properties": {
+                  "startMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endMs": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "withheld": {
+              "type": "boolean"
+            },
+            "words": {
+              "$ref": "#/properties/output/properties/speech/properties/captions"
+            }
+          }
+        },
+        "voice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "startMs"],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "startMs": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     }

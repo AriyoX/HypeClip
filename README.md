@@ -1,8 +1,47 @@
 # HypeClip
 
-Pair a finished recording with timestamped audience chat. HypeClip selects reaction spikes, renders captioned 1080×1920 MP4s, and evaluates them locally with Ollama. Clips go to review by default. An explicitly enabled session can send accepted clips to one Buffer TikTok channel.
+HypeClip is a local Windows studio for monitoring English-speaking GTA VI streams and reviewing vertical clips. It can follow a creator watchlist, scan an archive, or process a local recording. Chat activity and audio identify candidates. Whisper supplies timed speech, Ollama evaluates the evidence, and FFmpeg renders the MP4 with the original audio.
 
-## Set up the Victus
+## Start monitoring on this PC
+
+Start the dashboard from PowerShell. Keep this terminal open and the PC awake while it monitors. You can close Codex and the browser tab. [Open the local dashboard](http://127.0.0.1:4177)
+
+```powershell
+pnpm --dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard
+```
+
+1. Open **Sources**. Choose **Watchlist** to follow the 20 ranked creators, **Stream URL** for a particular broadcast, or **Local recording** for a file. A recording can use timestamped chat and the first frame’s UTC time, or media-only detection.
+2. Select **Check source**. Read the media and chat status, confirm your capture and editing permission, then choose **Monitor once**. For a source you want to keep, choose **Save source**, then **Select** beside it in **Your sources**. A new installation starts with no sources enabled.
+3. Open **Overview** to see current activity. The CLI and dashboard share two capture slots by default. An offline watchlist creator waits for an eligible broadcast. A source without accessible media shows the reason in **Sources**.
+4. Open **Clips** to play the MP4 and inspect the detector, Qwen and final decision. Choose **Needs review** to work through the queue. **Compare cuts** opens two exports of the same moment at the same source time. **Presentation** previews a new layout or caption treatment using cached media and speech. Saving creates a separate export.
+
+Local studio work needs no publishing account. The dashboard keeps publishing disabled. Copies exported by the dashboard are under your Windows Videos folder in `HypeClip\Dashboard`. Each clip shows its exact path and an **Open folder** button. Stop a source in **Sources** or stop the server with Ctrl+C.
+
+**Starting at Windows sign-in is optional.** For a dedicated monitoring PC, create a Task Scheduler task for your Windows account with an **At log on** trigger. For **Program/script**, use the path printed by `(Get-Command pnpm.cmd).Source`. For **Add arguments**, enter `--dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard`. Set **If the task is already running** to **Do not start a new instance**. Start and test the watchlist in the dashboard first. At the next sign-in, open Overview and check the source state. Capture requires the PC to remain awake.
+
+### Which connections do I need?
+
+| What you want to do | What to set up |
+| --- | --- |
+| Review a local recording or accessible public Kick archive | The local tools below. Kick replay chat is fetched when available. |
+| Monitor a live channel | A playable feed and the applicable media adapter. Use **Check source** on the channel you want to follow. For Streamlink, install its Windows build and put it on PATH, or set `HYPECLIP_STREAMLINK` in `.env`. |
+| Read Twitch or YouTube audience chat | Configure the corresponding reader in `.env`. Twitch uses a user token. YouTube uses a Data API key or access token. |
+| Use TikTok LIVE | A playable live room or a creator-provided recording. Supply a timestamped chat export for chat detection. Native TikTok chat collection is unavailable. |
+| Publish through Buffer later | Configure Buffer and R2 only when you decide to publish. The dashboard never authorizes posting. |
+
+**Settings → Input connections** shows the adapter capabilities. From the checkout, run `pnpm hypeclip providers --check` to inspect this installation. Instructions for obtaining and checking each optional connection, including the current limits of Kick live polling and webhooks, are in the [provider setup guide](docs/monitor.md).
+
+### How endings and review work
+
+The editor examines nearby Whisper segments inside the reserved footage. When the proposed ending lands on a question, it looks for a supported direct reply before a topic change. It can include the reply and a short pause bounded by the next speech cue and the available footage. An unanswered question or unrelated turn keeps the proposed end. The decision record includes the question, reply, source times and pause. Qwen cites timestamped speech or chat rows. Unsupported claims go to review, where the original MP4 is available for playback.
+
+## Monitor stream URLs
+
+Run `pnpm hypeclip watchlist` for the ranked GTA VI roster and its source evidence. `pnpm hypeclip providers --check` shows local provider readiness. Use `pnpm hypeclip monitor --watchlist docs/watchlist.json` for the two-slot local monitor. Supply the scope of authorized capture with `--rights` or on individual channels. [Provider setup, archive scans and editable exports](docs/monitor.md)
+
+Use `pnpm hypeclip monitor` for concurrent Twitch, YouTube Live, Kick and TikTok LIVE sources. The local workflow preserves original audio, captions speech and supports operator timestamps when chat is unavailable. Run the two real GTA VI edits with `pnpm hypeclip monitor --config .\docs\gta6-kick.json --once`. [Mixed URL setup, source capabilities, exports and voice previews](docs/monitor.md)
+
+## Install on a new Windows PC
 
 Run from the repository root in PowerShell. The tested stack is Windows 11 x64, Node 22.15, pnpm 10.14, Python 3.13 and FFmpeg with libx264, libass and drawtext. For a fresh Windows machine, install `OpenJS.NodeJS.LTS`, `Python.Python.3.13`, `Ollama.Ollama` and `Gyan.FFmpeg` with `winget install --id <package> --exact`. Reopen PowerShell. A side-by-side FFmpeg installation also works. [Worker setup and pinned dependencies](workers/README.md)
 
@@ -54,7 +93,25 @@ pnpm hypeclip process --session stream-01 --chat $chat --source $source --media-
 
 Chat JSONL retains `eventId`, `eventAt`, `receivedAt`, `userId`, `text` and optional `emotes`. Source time is event time minus the anchor plus signed `--offset-ms`. A 60 s spike with `--reaction-ms 4000` estimates a 56 s event. The 30 s pre-roll and 25 s post-roll produce `[26,81)` on a 95 s recording. Overlapping candidates merge. The optional `live` command waits for finalized post-roll on a loopback MPEG-TS input. [Replay, broadcast run and live-input verification](docs/verification.md)
 
-The CLI processes one candidate at a time. It validates the worker artifacts, stores the transcript and SRT separately from the proposed post text, and records the Ollama tag, decision, reason and flags. Retry an unavailable evaluator with `pnpm hypeclip evaluate <clip-id>`. A verified accept, clean quality flags, confirmed source rights and an enabled destination are required for automatic publication. Fixtures stay local.
+The recording commands process one candidate at a time. It validates the worker artifacts, stores the transcript and SRT separately from the proposed post text, and records the Ollama tag, decision, reason and flags. Retry an unavailable evaluator with `pnpm hypeclip evaluate <clip-id>`. A verified accept, clean quality flags, confirmed source rights and an enabled destination are required for automatic publication. Fixtures stay local.
+
+## Concurrent local broadcasts
+
+On the configured Victus, run the complete two-source acceptance demo from this checkout in PowerShell.
+
+```powershell
+python .\scripts\gta6-demo.py
+```
+
+The runner uses Windows desktop speech synthesis, Pillow, NumPy and psutil in the system Python. The existing worker venv supplies offline Whisper small. FFmpeg receives two original 240-second discussion fixtures at real-time pace. Each feed stops after its first completed decision. The runner ignores repository credentials, replaces the publishers with local doubles, and writes a new state directory under `%LOCALAPPDATA%\HypeClip\gta6-runs`. It verifies copies in a timestamped subdirectory of the Windows Videos known folder under `HypeClip\GTA6-Demo`. Allow several minutes for rendering, model checks and the timed recovery test.
+
+For an existing local feed manifest, the entry point is `pnpm hypeclip live-multi --manifest PATH`. Add `--once` to stop each source after its first decision. The generated `fixtures/manifest.json` is a working example. Each of the one or two entries in `sources` requires a distinct broadcast `id`, its own chat JSONL path, an authorized replay `file` or loopback UDP `port`, a `destination` and `rights: true`. Use `fixture: true` for synthetic inputs. An explicit `mediaStart` maps archived chat to the first frame. Otherwise chat uses the current capture anchor. Set `reactionMs` per source. New broadcasts need new IDs.
+
+FFmpeg stream-copies the input into keyframe-aligned segments. Supply regular keyframes, ideally every two seconds. Each broadcast has a 65-second rolling buffer, a separate detection baseline and a cooldown covering its reserved window. Candidates reserve 30 seconds before and 25 seconds after the estimated event. Gaps or early endings that cut through a reservation remain visible in SQLite as incomplete. A ready window transfers to a durable local file before it enters the worker queue. Restart with the same state directory and manifest to resume. Replays seek to the finalized media position. A loopback reconnect opens a fresh capture directory and records a gap.
+
+The coordinator admits at most 12 pending windows by default, advances two jobs and alternates ready sources. There is one slot each for heavy FFmpeg, Whisper and Ollama, with two active heavy stages in total. Capture and stream-copy remuxing run independently. Manifest settings `retentionMs`, `queueLimit` and `diskMiB` control capacity. The default disk high-water mark is 4096 MiB across the state directory, sampled once per second. Reaching it stops intake and active encoders. Completed review media stays on disk and counts against that budget.
+
+Jobs retain their destination and delivery mode. Automatic sends also require the matching enabled policy at send time. Active sessions sharing a destination use the smallest configured cap as their combined budget against automatic intents in this database. The existing unique claims, rate-limit cooldown and ambiguous-response reconciliation still apply. Explicitly authorized EventSub channels sharing one identity can use `collect-multi --manifest PATH`, with an array of `{broadcaster, session, path}` entries. The local demo uses synthetic chat.
 
 ## Publish to TikTok
 

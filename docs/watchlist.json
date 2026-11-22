@@ -1,0 +1,1491 @@
+{
+  "pins": [
+    "kaicenat",
+    "ishowspeed"
+  ],
+  "additions": [],
+  "exclusions": [],
+  "creators": [
+    {
+      "key": "kaicenat",
+      "name": "Kai Cenat",
+      "channels": [
+        {
+          "url": "https://www.twitch.tv/kaicenat",
+          "id": "641972806",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0,
+                0.4,
+                0.204,
+                0.208
+              ],
+              "gameplay": [
+                0.212,
+                0,
+                0.67,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        },
+        {
+          "url": "https://www.youtube.com/@KaiCenatLive/live",
+          "id": "UCvCfpQXRXdJdL07pzTIA6Cw"
+        }
+      ],
+      "evidence": {
+        "source": "https://www.youtube.com/watch?v=yX4DH_msPkI",
+        "at": "2026-11-20T11:19:23.580Z",
+        "title": "PLAYING GTA 6 FOR THE FIRST TIME (PART 4)",
+        "viewers": 32519
+      },
+      "samples": [
+        {
+          "url": "https://www.twitch.tv/kaicenat",
+          "atMs": 17500,
+          "note": "Twitch 321440808416, from local capture at 10:56:06 UTC. Makes a personal bathroom aside over gameplay.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://www.twitch.tv/kaicenat",
+          "atMs": 96320,
+          "note": "Twitch 321440808416, from local capture at 10:56:06 UTC. Responds to viewers about what he would do.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://www.twitch.tv/kaicenat",
+          "atMs": 135530,
+          "note": "Twitch 321440808416, from local capture at 10:56:06 UTC. Talks on camera about washing his hands after the break.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "ishowspeed",
+      "name": "IShowSpeed",
+      "channels": [
+        {
+          "url": "https://www.youtube.com/@IShowSpeed/live",
+          "id": "UCWsDFcIhY2DBi3GB5uykGXA",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0,
+                0.422,
+                0.201,
+                0.23
+              ],
+              "gameplay": [
+                0.21,
+                0,
+                0.67,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        },
+        {
+          "url": "https://www.twitch.tv/ishowspeed",
+          "id": "220476955"
+        },
+        {
+          "url": "https://www.tiktok.com/@ishowspeed/live",
+          "id": "6865486669187171334"
+        }
+      ],
+      "evidence": {
+        "source": "https://www.youtube.com/watch?v=hwSg39yIBGU",
+        "at": "2026-11-20T11:19:23.593Z",
+        "title": "🔴PLAYING GTA 6 RIGHT NOW GET IN HERE!",
+        "viewers": 138793
+      },
+      "samples": [
+        {
+          "url": "https://www.youtube.com/watch?v=hwSg39yIBGU",
+          "atMs": 36000,
+          "note": "From local capture at 10:56:04 UTC. Brief aside about AI after the in-game traffic radio.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=hwSg39yIBGU",
+          "atMs": 108000,
+          "note": "From local capture at 10:56:04 UTC. Calls attention to the police officer while playing.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=hwSg39yIBGU",
+          "atMs": 40000,
+          "note": "Live capture begun 11:17:15 UTC on Nov 20. Remarks on the game giving him no more missions.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=hwSg39yIBGU",
+          "atMs": 79000,
+          "note": "Live capture begun 11:17:15 UTC on Nov 20. Directly asks chat where he should go next.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "deenthegreat",
+      "name": "DeenTheGreat",
+      "channels": [
+        {
+          "url": "https://kick.com/deenthegreat",
+          "id": "5417122"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=1",
+        "at": "2026-11-20T10:48:48.247Z",
+        "title": "CRASHOUT IN GTA DAY 2 ☝🏾 3 PS5 GIVEAWAYS LEFT 🎮",
+        "viewers": 16742,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/deenthegreat/videos/81b74ab4-a625-4a98-8b54-620f0a3c0226",
+          "atMs": 12931150,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/deenthegreat/videos/81b74ab4-a625-4a98-8b54-620f0a3c0226",
+          "atMs": 54954283,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/deenthegreat/videos/81b74ab4-a625-4a98-8b54-620f0a3c0226",
+          "atMs": 95915050,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        }
+      ]
+    },
+    {
+      "key": "theburntpeanut",
+      "name": "TheBurntPeanut",
+      "channels": [
+        {
+          "url": "https://kick.com/theburntpeanut",
+          "id": "15462911"
+        },
+        {
+          "url": "https://www.twitch.tv/theburntpeanut",
+          "id": "472066926"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=1",
+        "at": "2026-11-20T10:48:48.249Z",
+        "title": "GTA 6 | DAY 2 | VICE CITY | SUPER CARS/HYPER CARS | #1 GTA 6 DRIVER | #BUNGULATE",
+        "viewers": 7438,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/theburntpeanut/videos/84ff5667-8dc5-4ff6-b643-073d50c0186b",
+          "atMs": 8362500,
+          "note": "Interrupts his actions with an aside about spray.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/theburntpeanut/videos/84ff5667-8dc5-4ff6-b643-073d50c0186b",
+          "atMs": 35550000,
+          "note": "Calls attention to a voice before character dialogue begins.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/theburntpeanut/videos/84ff5667-8dc5-4ff6-b643-073d50c0186b",
+          "atMs": 62050000,
+          "note": "Asks what he is doing wrong while following the character.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "anthonyz",
+      "name": "AnthonyZ",
+      "channels": [
+        {
+          "url": "https://kick.com/anthonyz",
+          "id": "1830228"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=1",
+        "at": "2026-11-20T10:48:48.249Z",
+        "title": "🔥DROPS HERE🔥GTA 6🔥13 YEARS WAITING!🔥",
+        "viewers": 5356,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/anthonyz/videos/dcd89a81-3944-44d8-ab23-408481d19d77",
+          "atMs": 6711566,
+          "note": "Comments on how difficult the game is and addresses another person.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/anthonyz/videos/dcd89a81-3944-44d8-ab23-408481d19d77",
+          "atMs": 28691916,
+          "note": "Explains what he tried to modify about the custom car.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/anthonyz/videos/dcd89a81-3944-44d8-ab23-408481d19d77",
+          "atMs": 38262983,
+          "note": "Draws attention to the brakes.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "shnaggyhose",
+      "name": "SHNAGGYHOSE",
+      "channels": [
+        {
+          "url": "https://kick.com/shnaggyhose",
+          "id": "879699",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.79,
+                0.004,
+                0.198,
+                0.238
+              ],
+              "gameplay": [
+                0.101,
+                0,
+                0.676,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=2",
+        "at": "2026-11-20T10:48:49.474Z",
+        "title": "WE HERE GTA 6 DAY 2",
+        "viewers": 3578,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/shnaggyhose/videos/a5f2331c-c13e-4936-b429-4cd7f3390997",
+          "atMs": 3534783,
+          "note": "Directs viewers to the water effect while playing basketball.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/shnaggyhose/videos/a5f2331c-c13e-4936-b429-4cd7f3390997",
+          "atMs": 15001050,
+          "note": "Addresses viewers while reacting to an exchange in the game.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/shnaggyhose/videos/a5f2331c-c13e-4936-b429-4cd7f3390997",
+          "atMs": 26166833,
+          "note": "Adds a first-person aside about his shades over dialogue.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "capp",
+      "name": "Capp",
+      "channels": [
+        {
+          "url": "https://kick.com/capp",
+          "id": "59799"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=2",
+        "at": "2026-11-20T10:48:49.474Z",
+        "title": "GTA 6 IS HERE! FULL PLAYTHROUGH | Twitter & IG @CapThaGod",
+        "viewers": 2261,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/capp/videos/e25cdcb1-2dcf-4bfb-a743-71e8d11247e8",
+          "atMs": 1944050,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/capp/videos/e25cdcb1-2dcf-4bfb-a743-71e8d11247e8",
+          "atMs": 8355466,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/capp/videos/e25cdcb1-2dcf-4bfb-a743-71e8d11247e8",
+          "atMs": 14615566,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/capp/videos/e25cdcb1-2dcf-4bfb-a743-71e8d11247e8",
+          "atMs": 497250,
+          "note": "Talks about clips and questions sent to him while his desktop is visible.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/capp/videos/e25cdcb1-2dcf-4bfb-a743-71e8d11247e8",
+          "atMs": 11172250,
+          "note": "Compares the speed of the mopeds in the game.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/capp/videos/e25cdcb1-2dcf-4bfb-a743-71e8d11247e8",
+          "atMs": 15429600,
+          "note": "Comments on his character’s chain and outfit.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "bigloaaf",
+      "name": "Bigloaaf",
+      "channels": [
+        {
+          "url": "https://kick.com/bigloaaf",
+          "id": "3342940",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.004,
+                0.364,
+                0.229,
+                0.263
+              ],
+              "gameplay": [
+                0.24,
+                0,
+                0.66,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=2",
+        "at": "2026-11-20T10:48:49.474Z",
+        "title": "we here! GTA 6 😈MARATHON",
+        "viewers": 2013,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/bigloaaf/videos/9ef873e5-58ce-4490-a446-936ef59f2508",
+          "atMs": 5612683,
+          "note": "Addresses chat and explains what viewers are missing.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/bigloaaf/videos/9ef873e5-58ce-4490-a446-936ef59f2508",
+          "atMs": 12171116,
+          "note": "Explains a constraint on driving the cars away.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/bigloaaf/videos/9ef873e5-58ce-4490-a446-936ef59f2508",
+          "atMs": 31832383,
+          "note": "Breaks from the scene to address chat about subscriptions.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "dtanmanb",
+      "name": "dtanmanb",
+      "channels": [
+        {
+          "url": "https://kick.com/dtanmanb",
+          "id": "4634634",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.76,
+                0.69,
+                0.235,
+                0.307
+              ],
+              "gameplay": [
+                0.125,
+                0,
+                0.64,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=3",
+        "at": "2026-11-20T10:48:50.475Z",
+        "title": "DROPS ON: GTA 6 100% PLAYTHROUGH",
+        "viewers": 1926,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/dtanmanb/videos/9219ae9f-d21c-483f-9df4-015408efeb01",
+          "atMs": 9441283,
+          "note": "Shifts from the characters to his camera settings.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/dtanmanb/videos/9219ae9f-d21c-483f-9df4-015408efeb01",
+          "atMs": 69911418,
+          "note": "Reacts to the displayed number of laps.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/dtanmanb/videos/9219ae9f-d21c-483f-9df4-015408efeb01",
+          "atMs": 2439066,
+          "note": "Explains that the stream audio delay needs fixing.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "approvalsonly",
+      "name": "ApprovalsOnly",
+      "channels": [
+        {
+          "url": "https://kick.com/approvalsonly",
+          "id": "10693426"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=3",
+        "at": "2026-11-20T10:48:50.476Z",
+        "title": "City of Love RP Owner POV 🛩️ Melo In RP 🛩️GTA 6 Gameplay 🛩️ !discord",
+        "viewers": 1591
+      },
+      "samples": []
+    },
+    {
+      "key": "razzgo",
+      "name": "razzgo",
+      "channels": [
+        {
+          "url": "https://kick.com/razzgo",
+          "id": "99376417"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=3",
+        "at": "2026-11-20T10:48:50.476Z",
+        "title": "☢️DROPS ON☢️| GTA VI 24/7 MARATHON| !FISH ON! | !GAMBLE | Cx",
+        "viewers": 1463,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/razzgo/videos/9f125bc9-d386-454c-9bfd-18ce96a977db",
+          "atMs": 41420000,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/razzgo/videos/9f125bc9-d386-454c-9bfd-18ce96a977db",
+          "atMs": 176021651,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/razzgo/videos/9f125bc9-d386-454c-9bfd-18ce96a977db",
+          "atMs": 307202867,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        }
+      ]
+    },
+    {
+      "key": "rewardstation",
+      "name": "rewardstation",
+      "channels": [
+        {
+          "url": "https://kick.com/rewardstation",
+          "id": "129882568"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=3",
+        "at": "2026-11-20T10:48:50.476Z",
+        "title": "🟢DROPS ON🟢24H REWARD STATION 🎁",
+        "viewers": 1260,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/rewardstation/videos/b356c0cc-5a98-43c4-a61e-289446ff0643",
+          "atMs": 20700000,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/rewardstation/videos/b356c0cc-5a98-43c4-a61e-289446ff0643",
+          "atMs": 88087900,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/rewardstation/videos/b356c0cc-5a98-43c4-a61e-289446ff0643",
+          "atMs": 153707566,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        }
+      ]
+    },
+    {
+      "key": "slim",
+      "name": "Slim",
+      "channels": [
+        {
+          "url": "https://kick.com/slim",
+          "id": "25675678",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.83,
+                0.305,
+                0.169,
+                0.35
+              ],
+              "gameplay": [
+                0.15,
+                0,
+                0.675,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "GTA 6 MARATHON",
+        "viewers": 1210,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/slim/videos/b1f4ccec-2fd4-45d8-8e90-6b659a9557c7",
+          "atMs": 3952484,
+          "note": "On full camera, speaks about taking over the stream.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/slim/videos/b1f4ccec-2fd4-45d8-8e90-6b659a9557c7",
+          "atMs": 1018484,
+          "note": "Reacts to the look of the game.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/slim/videos/b1f4ccec-2fd4-45d8-8e90-6b659a9557c7",
+          "atMs": 8594917,
+          "note": "Tells a personal story about a group chat.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "freak_22",
+      "name": "FREAK_22",
+      "channels": [
+        {
+          "url": "https://kick.com/freak_22",
+          "id": "129114881"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "🔴GTA6",
+        "viewers": 1142,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/freak_22/videos/3eabf318-1556-4537-bb71-95a6d7dcb8f9",
+          "atMs": 963650,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "mixed"
+        },
+        {
+          "url": "https://kick.com/freak_22/videos/3eabf318-1556-4537-bb71-95a6d7dcb8f9",
+          "atMs": 4111150,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "mixed"
+        },
+        {
+          "url": "https://kick.com/freak_22/videos/3eabf318-1556-4537-bb71-95a6d7dcb8f9",
+          "atMs": 7168766,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "mixed"
+        }
+      ]
+    },
+    {
+      "key": "mattlafff",
+      "name": "MATTLAFFF",
+      "channels": [
+        {
+          "url": "https://kick.com/mattlafff",
+          "id": "1851054",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.704,
+                0.381,
+                0.284,
+                0.271
+              ],
+              "gameplay": [
+                0.016,
+                0,
+                0.67,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "GTA 6 GAME OF THE YEAR | FINISHING CHAPTER 1",
+        "viewers": 1062,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/mattlafff/videos/f43081ef-1672-404b-b576-0c3f391f27ba",
+          "atMs": 2172400,
+          "note": "Thanks a viewer by name before in-game phone dialogue.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/mattlafff/videos/f43081ef-1672-404b-b576-0c3f391f27ba",
+          "atMs": 5684900,
+          "note": "Talks about catching the fish while playing from shore.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/mattlafff/videos/f43081ef-1672-404b-b576-0c3f391f27ba",
+          "atMs": 14047400,
+          "note": "Shows chat where he plans to go on the map.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "mdswervin",
+      "name": "MDSwervin",
+      "channels": [
+        {
+          "url": "https://kick.com/mdswervin",
+          "id": "125464"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "Swervin in VICE City 🍂 GTA VI is HERE! 🍂 18/90 Days In 🍂 !sub !socials",
+        "viewers": 1058,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/mdswervin/videos/92e2d326-75b9-40f4-a724-e2b278e6b1c6",
+          "atMs": 5010267,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/mdswervin/videos/92e2d326-75b9-40f4-a724-e2b278e6b1c6",
+          "atMs": 21418383,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/mdswervin/videos/92e2d326-75b9-40f4-a724-e2b278e6b1c6",
+          "atMs": 37405917,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        }
+      ]
+    },
+    {
+      "key": "robertovstheworld",
+      "name": "robertovstheworld",
+      "channels": [
+        {
+          "url": "https://kick.com/robertovstheworld",
+          "id": "20094363"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "GTA 6 | We Finally Made It to Vice City !bcgame",
+        "viewers": 1050,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/robertovstheworld/videos/79cda661-4d60-44c8-a230-d7f75e8d69f3",
+          "atMs": 6677271,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/robertovstheworld/videos/79cda661-4d60-44c8-a230-d7f75e8d69f3",
+          "atMs": 28531403,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/robertovstheworld/videos/79cda661-4d60-44c8-a230-d7f75e8d69f3",
+          "atMs": 49689206,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        }
+      ]
+    },
+    {
+      "key": "funnyhoodvidz",
+      "name": "funnyhoodvidz",
+      "channels": [
+        {
+          "url": "https://kick.com/funnyhoodvidz",
+          "id": "3533",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0,
+                0,
+                0.265,
+                0.29
+              ],
+              "gameplay": [
+                0.276,
+                0,
+                0.67,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "$20 TO THE POT EVERY TIME I DIE. YOU CAN WIN MONEY IN CHAT. 3X POINTS FOR GTA",
+        "viewers": 1020,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/funnyhoodvidz/videos/471b3441-8e0d-453b-a4a7-31dabd459924",
+          "atMs": 370000,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/funnyhoodvidz/videos/471b3441-8e0d-453b-a4a7-31dabd459924",
+          "atMs": 1570000,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/funnyhoodvidz/videos/471b3441-8e0d-453b-a4a7-31dabd459924",
+          "atMs": 2751566,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        }
+      ]
+    },
+    {
+      "key": "capped",
+      "name": "Capped",
+      "channels": [
+        {
+          "url": "https://kick.com/capped",
+          "id": "63197595"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.623Z",
+        "title": "GRAND THEFT AUTO VI | ITS TIME | DAY 2",
+        "viewers": 981,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/capped/videos/2096454f-7889-4b20-9cb0-ad318d29b83c",
+          "atMs": 3758500,
+          "note": "Comments on his own piloting after the maneuver.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/capped/videos/2096454f-7889-4b20-9cb0-ad318d29b83c",
+          "atMs": 15917334,
+          "note": "Asks viewers for a fix before the next stream.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/capped/videos/2096454f-7889-4b20-9cb0-ad318d29b83c",
+          "atMs": 971667,
+          "note": "Discusses flying planes and roleplay with the audience.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "cuvey",
+      "name": "Cuvey",
+      "channels": [
+        {
+          "url": "https://kick.com/cuvey",
+          "id": "99876"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.624Z",
+        "title": "GTA 6 WALKTHROUGH WE BACK *DROPS ON*| $25 CODE CUVEY ON !STAKE | 3K LEADERBOARD !STAKELB",
+        "viewers": 946,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/cuvey/videos/5b2e91f6-595c-4310-bab0-87d09a7e31eb",
+          "atMs": 654666,
+          "note": "Directly asks a viewer about the clipping program.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/cuvey/videos/5b2e91f6-595c-4310-bab0-87d09a7e31eb",
+          "atMs": 2787716,
+          "note": "Discusses keeping the car with a viewer.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/cuvey/videos/5b2e91f6-595c-4310-bab0-87d09a7e31eb",
+          "atMs": 4870833,
+          "note": "Asks what he should be looking for.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "shoovy",
+      "name": "shoovy",
+      "channels": [
+        {
+          "url": "https://kick.com/shoovy",
+          "id": "30122395",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.745,
+                0.75,
+                0.25,
+                0.248
+              ],
+              "gameplay": [
+                0.19,
+                0.12,
+                0.55,
+                0.78
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=4",
+        "at": "2026-11-20T10:48:51.624Z",
+        "title": "GTA 6  30/100% complete",
+        "viewers": 926,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/shoovy/videos/81c244ee-4afa-40b2-bdeb-93fc33a6d628",
+          "atMs": 18251450,
+          "note": "Explains the capture card situation to his audience.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/shoovy/videos/81c244ee-4afa-40b2-bdeb-93fc33a6d628",
+          "atMs": 630000,
+          "note": "Gives the current time to a viewer.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/shoovy/videos/81c244ee-4afa-40b2-bdeb-93fc33a6d628",
+          "atMs": 13941450,
+          "note": "Calls attention to an item he can steal in game.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "grinch",
+      "name": "Grinch",
+      "channels": [
+        {
+          "url": "https://kick.com/grinch",
+          "id": "264717"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=5",
+        "at": "2026-11-20T10:48:53.394Z",
+        "title": "Giveaway  | GTAVI Walkthrough  | We in VICE City | !socials !yt !ig",
+        "viewers": null,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/grinch/videos/e71e1237-19be-4555-b58a-d4391b37ba79",
+          "atMs": 4832884,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/grinch/videos/e71e1237-19be-4555-b58a-d4391b37ba79",
+          "atMs": 20660850,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/grinch/videos/e71e1237-19be-4555-b58a-d4391b37ba79",
+          "atMs": 36071367,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/grinch/videos/e71e1237-19be-4555-b58a-d4391b37ba79",
+          "atMs": 3619634,
+          "note": "Calls out a stealth attack as he controls the character.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/grinch/videos/e71e1237-19be-4555-b58a-d4391b37ba79",
+          "atMs": 15337900,
+          "note": "Discusses joining a different faction over free-roam driving.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/grinch/videos/e71e1237-19be-4555-b58a-d4391b37ba79",
+          "atMs": 34472717,
+          "note": "Tells viewers about his own former telephone job while driving a boat.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "plutooo",
+      "name": "Plutooo",
+      "channels": [
+        {
+          "url": "https://kick.com/plutooo",
+          "id": "138859"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=5",
+        "at": "2026-11-20T10:48:53.394Z",
+        "title": "GTA 6 IS HERE ! 🗽 PULL UP ! Ep.2",
+        "viewers": null,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/plutooo/videos/0d532e17-4297-44ef-9fd5-1b16b7ef9f34",
+          "atMs": 1409450,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/plutooo/videos/0d532e17-4297-44ef-9fd5-1b16b7ef9f34",
+          "atMs": 6074834,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/plutooo/videos/0d532e17-4297-44ef-9fd5-1b16b7ef9f34",
+          "atMs": 10640817,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        }
+      ]
+    },
+    {
+      "key": "xlie",
+      "name": "xLie",
+      "channels": [
+        {
+          "url": "https://kick.com/xlie",
+          "id": "1389331"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=5",
+        "at": "2026-11-20T10:48:53.394Z",
+        "title": "Still Havent Slept! GTA 6 Marathon! Exploring Leonida !sub",
+        "viewers": null,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/xlie/videos/f564c4eb-451b-4750-b6e8-65f24a3e1882",
+          "atMs": 9850000,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/xlie/videos/f564c4eb-451b-4750-b6e8-65f24a3e1882",
+          "atMs": 41870000,
+          "note": "No transcribed voice in the sampled window.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://kick.com/xlie/videos/f564c4eb-451b-4750-b6e8-65f24a3e1882",
+          "atMs": 73070000,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        }
+      ]
+    },
+    {
+      "key": "derekking",
+      "name": "DerekKing",
+      "channels": [
+        {
+          "url": "https://kick.com/derekking",
+          "id": "53272489",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0,
+                0.06,
+                0.19,
+                0.245
+              ],
+              "gameplay": [
+                0.203,
+                0,
+                0.67,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=5",
+        "at": "2026-11-20T10:48:53.394Z",
+        "title": "🚨WE BEATING GTA 6 TODAY!!!🚨",
+        "viewers": null,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/derekking/videos/e591fce5-762f-4e8a-b553-8248d282af58",
+          "atMs": 2275850,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/derekking/videos/e591fce5-762f-4e8a-b553-8248d282af58",
+          "atMs": 9656566,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/derekking/videos/e591fce5-762f-4e8a-b553-8248d282af58",
+          "atMs": 16861616,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/derekking/videos/e591fce5-762f-4e8a-b553-8248d282af58",
+          "atMs": 581133,
+          "note": "Explains from the settings menu that it was working earlier.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/derekking/videos/e591fce5-762f-4e8a-b553-8248d282af58",
+          "atMs": 1703466,
+          "note": "Asks why the character changed size and reacts to landing in jail.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/derekking/videos/e591fce5-762f-4e8a-b553-8248d282af58",
+          "atMs": 17811616,
+          "note": "Talks over the club scene, addressing Lucia and reacting to the music.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "schlump",
+      "name": "schlump",
+      "channels": [
+        {
+          "url": "https://kick.com/schlump",
+          "id": "1459477",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.065,
+                0.03,
+                0.13,
+                0.215
+              ],
+              "gameplay": [
+                0.275,
+                0,
+                0.672,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/stream/livestreams/en?subcategory_id=13155&sort=desc&limit=50&page=5",
+        "at": "2026-11-20T10:48:53.394Z",
+        "title": "UNCAPPED KICK-A-THON DAY 27👑GTA 6 GETTING TO 80% GAME IS INSANE👑UNLIMITED CONTENT👑 258/365",
+        "viewers": 788,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/schlump/videos/e6df5954-08eb-49bd-a063-34bbeee58a4c",
+          "atMs": 20172016,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/schlump/videos/e6df5954-08eb-49bd-a063-34bbeee58a4c",
+          "atMs": 86698483,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/schlump/videos/e6df5954-08eb-49bd-a063-34bbeee58a4c",
+          "atMs": 150602150,
+          "note": "Speech present. Source attribution or streamer English remains unresolved.",
+          "speaker": "uncertain"
+        },
+        {
+          "url": "https://kick.com/schlump/videos/e6df5954-08eb-49bd-a063-34bbeee58a4c",
+          "atMs": 15132016,
+          "note": "Explains how extra spins work during an intermission.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/schlump/videos/e6df5954-08eb-49bd-a063-34bbeee58a4c",
+          "atMs": 33946416,
+          "note": "Tells a story about his mother rather than reading the on-screen text.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/schlump/videos/e6df5954-08eb-49bd-a063-34bbeee58a4c",
+          "atMs": 128740933,
+          "note": "Says what he plans to take while controlling his character in a shop.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "adinross",
+      "name": "Adin Ross",
+      "channels": [
+        {
+          "url": "https://kick.com/adinross",
+          "id": "875396",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.027,
+                0,
+                0.145,
+                0.217
+              ],
+              "gameplay": [
+                0.219,
+                0,
+                0.673,
+                1
+              ],
+              "captions": "auto"
+            },
+            "reactionMs": 5800,
+            "calibration": "Estimated from two shot-to-chat comparisons. First Kobe call at 6.91 s and chat at 11.56 s. Second miss around 24.5 s and airball chat at 31.56 s. Rounded midpoint 5.8 s including player delay."
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/api/v2/channels/adinross",
+        "at": "2026-11-20T10:48:53.662Z",
+        "title": "PLAYING GTA 6 DAY 3",
+        "viewers": 37062,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/adinross/videos/22ef5c21-a5c6-485d-bfed-ae236d42962c",
+          "atMs": 2575500,
+          "note": "On-camera commentary about needing one more during an intermission.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/adinross/clips/clip_01M7Q85JRWEEE0QGF2C1ZTP2X8",
+          "atMs": 23110,
+          "note": "Calls the shot on camera as the ball leaves his hands.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/adinross/clips/clip_01M7Q85JRWEEE0QGF2C1ZTP2X8",
+          "atMs": 42220,
+          "note": "Explains having to hold down the control after the attempt.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "xqc",
+      "name": "xQc",
+      "channels": [
+        {
+          "url": "https://kick.com/xqc",
+          "id": "668",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.03,
+                0.5,
+                0.16,
+                0.27
+              ],
+              "gameplay": [
+                0.198,
+                0,
+                0.672,
+                1
+              ],
+              "captions": "auto"
+            },
+            "reactionMs": 4300,
+            "calibration": "Estimated from the WASTED screen near 18.4 s and its first explicit WASTED chat emote at 22.7 s. Includes player delay; source chat timestamps have one-second precision."
+          }
+        },
+        {
+          "url": "https://www.twitch.tv/xqc",
+          "id": "71092938"
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/xqc/videos/61802db4-bbbd-4c96-a0a2-30db8bb54598",
+        "at": "2026-11-20T10:48:53.959Z",
+        "title": "🥥60 FPS GTA 6🥥LIVE🥥FINISHING PLAYTHROUGH🥥NOW🥥LONG STREAM PROBABLY🥥VERY COOL🥥LOCK IT IN🥥",
+        "viewers": null,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/xqc/videos/716d63b6-afa9-4afd-a1a6-d9aedf3e3a23",
+          "atMs": 25592977,
+          "note": "Reads the vape item in the shop and responds to it.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/xqc/videos/716d63b6-afa9-4afd-a1a6-d9aedf3e3a23",
+          "atMs": 25657917,
+          "note": "Comments on trying more of the item on camera.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/xqc/videos/716d63b6-afa9-4afd-a1a6-d9aedf3e3a23",
+          "atMs": 25676800,
+          "note": "Remarks in English that his HP is falling while the HUD changes. Selected clip.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "n3on",
+      "name": "n3on",
+      "channels": [
+        {
+          "url": "https://kick.com/n3on",
+          "id": "1227772",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0,
+                0,
+                0.213,
+                0.272
+              ],
+              "gameplay": [
+                0.22,
+                0,
+                0.66,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/n3on/videos/21a5d017-ea8c-455b-a5d0-16762b6cd87a",
+        "at": "2026-11-20T10:48:54.220Z",
+        "title": "GTA VI GRIND",
+        "viewers": null,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/n3on/videos/21a5d017-ea8c-455b-a5d0-16762b6cd87a",
+          "atMs": 1220000,
+          "note": "Announces a date to the audience over gameplay.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/n3on/videos/21a5d017-ea8c-455b-a5d0-16762b6cd87a",
+          "atMs": 9112183,
+          "note": "Counts his attempts at the same gameplay task.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/n3on/videos/21a5d017-ea8c-455b-a5d0-16762b6cd87a",
+          "atMs": 310000,
+          "note": "On full camera, discusses free roaming.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "cuffem",
+      "name": "Cuffem",
+      "channels": [
+        {
+          "url": "https://kick.com/cuffem",
+          "id": "4888",
+          "settings": {
+            "splitScreen": {
+              "facecam": [
+                0.005,
+                0,
+                0.253,
+                0.295
+              ],
+              "gameplay": [
+                0.265,
+                0,
+                0.635,
+                1
+              ],
+              "captions": "auto"
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "source": "https://kick.com/api/v2/channels/cuffem",
+        "at": "2026-11-20T10:48:54.509Z",
+        "title": "GTA6 DAY 2 WE HERE",
+        "viewers": 10317,
+        "languageTag": "English"
+      },
+      "samples": [
+        {
+          "url": "https://kick.com/cuffem/videos/94510189-4de9-491c-b805-bc88a5e256d8",
+          "atMs": 460000,
+          "note": "Objects to the instructions the game just displayed.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/cuffem/videos/94510189-4de9-491c-b805-bc88a5e256d8",
+          "atMs": 3880000,
+          "note": "Reacts to the tutorial before reading the on-screen instruction.",
+          "speaker": "streamer-en"
+        },
+        {
+          "url": "https://kick.com/cuffem/videos/94510189-4de9-491c-b805-bc88a5e256d8",
+          "atMs": 10150000,
+          "note": "Talks about the next session and getting tired.",
+          "speaker": "streamer-en"
+        }
+      ]
+    },
+    {
+      "key": "agent00",
+      "name": "Agent00",
+      "channels": [
+        {
+          "url": "https://www.twitch.tv/agent00",
+          "id": "90222258"
+        }
+      ],
+      "evidence": {
+        "source": "https://www.twitch.tv/agent00",
+        "at": "2026-11-20T11:05:52Z",
+        "title": "Grand Theft Auto VI, Twitch broadcast 319951251799",
+        "viewers": null
+      },
+      "samples": [
+        {
+          "url": "https://www.twitch.tv/agent00",
+          "atMs": 3000,
+          "note": "No attributable commentary in the live sample starting 11:07:14 UTC.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://www.twitch.tv/agent00",
+          "atMs": 18000,
+          "note": "No attributable commentary in the live sample starting 11:07:14 UTC.",
+          "speaker": "silent"
+        },
+        {
+          "url": "https://www.twitch.tv/agent00",
+          "atMs": 33000,
+          "note": "No attributable commentary in the live sample starting 11:07:14 UTC.",
+          "speaker": "silent"
+        }
+      ]
+    }
+  ]
+}

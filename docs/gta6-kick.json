@@ -1,0 +1,55 @@
+{
+  "channels": {
+    "kick:grootr6": {
+      "narration": "auto",
+      "calibration": "HLS program-date-time at first video frame. Operator timecodes. No reaction delay applied."
+    }
+  },
+  "sources": [
+    {
+      "url": "https://kick.com/grootr6/clips/clip_01M7QJ9PVYXVM24RD917YJBJCW",
+      "channel": "GrooTR6",
+      "broadcastId": "01a1ee1c-bc18-7a03-b966-e60e561dfaeb",
+      "status": "archive",
+      "mediaStart": "2026-11-18T14:51:30.218Z",
+      "archiveOffsetMs": 17270000,
+      "localReviewRights": "Local private review of a viewer-downloadable Kick clip. https://help.kick.com/en/articles/7120566-how-to-create-clips-on-kick",
+      "settings": {
+        "markers": [
+          {
+            "startMs": 11200,
+            "payoffMs": 17400,
+            "endMs": 22100,
+            "overlay": "Watch the right turn",
+            "observation": "GrooTR6 takes a right turn, skids into traffic, then pulls clear.",
+            "caption": "GrooTR6 skids through a crowded right turn in GTA VI.",
+            "withholdSpeech": "Three local Whisper passes disagree on the brief Tamil comment. Preserve the source voice and hold the wording for fluent review."
+          }
+        ]
+      },
+      "clipPlaylist": "https://clips.kick.com/clips/10/clip_01M7QJ9PVYXVM24RD917YJBJCW/playlist.m3u8"
+    },
+    {
+      "url": "https://kick.com/grootr6/clips/clip_01M7QHA4C4RX54N68R1TXQB03G",
+      "channel": "GrooTR6",
+      "broadcastId": "01a1ee1c-bc18-7a03-b966-e60e561dfaeb",
+      "status": "archive",
+      "mediaStart": "2026-11-18T14:34:04.218Z",
+      "archiveOffsetMs": 16224000,
+      "localReviewRights": "Local private review of a viewer-downloadable Kick clip. https://help.kick.com/en/articles/7120566-how-to-create-clips-on-kick",
+      "settings": {
+        "markers": [
+          {
+            "startMs": 2600,
+            "payoffMs": 10400,
+            "endMs": 18200,
+            "overlay": "Listen for the Snapmatic line",
+            "observation": "During the interactive sink repair, Mandy approaches with her phone and explains what she can learn by scrolling on Snapmatic.",
+            "caption": "A sink repair turns into a conversation about Snapmatic. GTA VI with GrooTR6."
+          }
+        ]
+      },
+      "clipPlaylist": "https://clips.kick.com/clips/1d/clip_01M7QHA4C4RX54N68R1TXQB03G/playlist.m3u8"
+    }
+  ]
+}

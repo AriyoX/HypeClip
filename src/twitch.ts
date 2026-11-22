@@ -1,5 +1,5 @@
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { z } from "zod";
 import { Chat, readChat } from "./detector.ts";
 import { env, jsonFile, writeJson } from "./local.ts";
@@ -10,7 +10,7 @@ const authSchema = z.object({
   user_id: z.string().min(1),
   scopes: z.array(z.string()),
 });
-async function identity(token: string) {
+export async function identity(token: string) {
   const r = await fetch("https://id.twitch.tv/oauth2/validate", {
     headers: { Authorization: "OAuth " + token },
     redirect: "error",
@@ -35,7 +35,13 @@ const event = z.object({
       chatter_user_id: z.string(),
       message: z.object({
         text: z.string(),
-        fragments: z.array(z.object({ type: z.string(), text: z.string() })),
+        fragments: z.array(
+          z.object({
+            type: z.string(),
+            text: z.string(),
+            emote: z.object({ id: z.string() }).nullable().optional(),
+          }),
+        ),
       }),
     }),
   }),
@@ -58,7 +64,7 @@ export function notification(
       text: e.message.text,
       emotes: e.message.fragments
         .filter((x) => x.type === "emote")
-        .map((x) => x.text),
+        .flatMap((x) => (x.emote ? [x.text, x.emote.id] : [x.text])),
     }),
     messageId: e.message_id,
     broadcasterId: broadcaster,
@@ -187,9 +193,18 @@ export async function collect(
   path: string,
   signal: AbortSignal,
 ) {
-  const token = env("TWITCH_USER_TOKEN"),
-    broadcaster = env("TWITCH_BROADCASTER_ID");
-  const id = await identity(token);
+  const [result] = await collectMany(
+    [{ session, path, broadcaster: env("TWITCH_BROADCASTER_ID") }],
+    signal,
+  );
+  return result;
+}
+export type Subscription = {
+  session: string;
+  path: string;
+  broadcaster: string;
+};
+function chatSink({ session, path, broadcaster }: Subscription) {
   mkdirSync(dirname(path), { recursive: true });
   const meta = path + ".session.json";
   if (existsSync(meta)) {
@@ -203,40 +218,64 @@ export async function collect(
   }
   appendFileSync(path, "", { mode: 0o600 });
   const seen = new Set(readChat(path).map((x) => x.eventId));
+  return { session, path, broadcaster, seen };
+}
+export async function collectMany(
+  channels: Subscription[],
+  signal: AbortSignal,
+) {
+  if (process.env.HYPECLIP_ISOLATED)
+    throw Error("EventSub disabled in isolated local runs");
+  if (
+    !channels.length ||
+    new Set(channels.map((c) => c.broadcaster)).size !== channels.length ||
+    new Set(channels.map((c) => resolve(c.path))).size !== channels.length
+  )
+    throw Error("Choose distinct broadcaster IDs and chat files");
+  const sinks = new Map(channels.map((c) => [c.broadcaster, chatSink(c)]));
+  const token = env("TWITCH_USER_TOKEN");
+  const id = await identity(token);
   await listen(
     {
       connect: (url) => new WebSocket(url),
       validate: () => identity(token),
       subscribe: async (session_id) => {
-        const r = await fetch(
-          "https://api.twitch.tv/helix/eventsub/subscriptions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: "Bearer " + token,
-              "Client-Id": id.client_id,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              type,
-              version: "1",
-              condition: {
-                broadcaster_user_id: broadcaster,
-                user_id: id.user_id,
+        for (const { broadcaster, path } of sinks.values()) {
+          const r = await fetch(
+            "https://api.twitch.tv/helix/eventsub/subscriptions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + token,
+                "Client-Id": id.client_id,
+                "Content-Type": "application/json",
               },
-              transport: { method: "websocket", session_id },
-            }),
-            redirect: "error",
-            signal: AbortSignal.timeout(10000),
-          },
-        );
-        if (r.status !== 202)
-          throw Error("Twitch chat subscription HTTP " + r.status);
-        console.error(
-          "Collecting Twitch chat from " + broadcaster + " into " + path,
-        );
+              body: JSON.stringify({
+                type,
+                version: "1",
+                condition: {
+                  broadcaster_user_id: broadcaster,
+                  user_id: id.user_id,
+                },
+                transport: { method: "websocket", session_id },
+              }),
+              redirect: "error",
+              signal: AbortSignal.timeout(10000),
+            },
+          );
+          if (r.status !== 202)
+            throw Error("Twitch chat subscription HTTP " + r.status);
+          console.error(
+            "Collecting Twitch chat from " + broadcaster + " into " + path,
+          );
+        }
       },
       write: (frame, time) => {
+        const broadcaster =
+          event.parse(frame).payload.event.broadcaster_user_id;
+        const sink = sinks.get(broadcaster);
+        if (!sink) throw Error("Unexpected broadcaster");
+        const { seen, path } = sink;
         const m = notification(frame, broadcaster, time);
         if (!seen.has(m.eventId)) {
           appendFileSync(path, JSON.stringify(m) + "\n", { flush: true });
@@ -246,5 +285,10 @@ export async function collect(
     },
     signal,
   );
-  return { session, broadcaster, messages: seen.size, path };
+  return Array.from(sinks.values(), ({ session, broadcaster, seen, path }) => ({
+    session,
+    broadcaster,
+    messages: seen.size,
+    path,
+  }));
 }
