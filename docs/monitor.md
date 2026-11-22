@@ -78,7 +78,7 @@ Run commands from the checkout. Use **Setup** in the dashboard to save optional 
 
 ### Optional TikTok publishing connection
 
-TikTok LIVE input uses the room adapter above. The separate publishing path uses TikTok connected **inside Buffer** and an R2 URL for the finished video. Local capture, preview and MP4 export use the filesystem. Adding credentials supplies connection details. Publishing requires a separate explicit publishing action or a separately enabled source policy.
+Dashboard clips save to the folder chosen in **Settings → Clips folder**. For manual posting, upload the local MP4 in TikTok. Automatic publishing uses the TikTok account connected in Buffer and a public HTTPS URL for the finished video. HypeClip uses R2 to provide that URL. Publication requires an explicit publishing action or an enabled source policy. [Buffer media hosting](https://developers.buffer.com/guides/hosting-media.html)
 
 | Setting | Source, usage and read-only verification |
 | --- | --- |

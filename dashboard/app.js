@@ -11,6 +11,7 @@ import {
 } from "./ui.js";
 import {
   overviewPublishing,
+  publishingOptions,
   publishingPage,
   publishingSteps,
   publishingSummary,
@@ -192,9 +193,11 @@ function route(focus = false) {
       ? $("#setup-" + CSS.escape(id))
       : page === "setup" && id
         ? $("#connection-" + CSS.escape(id))
-        : page === "sources" && id === "chat"
-          ? $("#source-credentials")
-          : null;
+        : page === "settings" && id === "storage"
+          ? $("#clip-storage")
+          : page === "sources" && id === "chat"
+            ? $("#source-credentials")
+            : null;
   if (section) {
     const target = section.querySelector("summary") || section;
     target.focus({ preventScroll: true });
@@ -971,7 +974,22 @@ function clips() {
 function settings() {
   return `<div class="page-head"><h1>Settings</h1></div>
     <div class="source-grid">
-      <section class="surface"><h2>Capture</h2>
+      <section class="surface" id="clip-storage" tabindex="-1" aria-labelledby="clip-storage-title">
+        <h2 id="clip-storage-title">Clips folder</h2>
+        <form class="form" id="clip-folder-form">
+          <div class="fieldrow">
+            <label class="sr-only" for="clip-folder">Clips folder path</label>
+            <input id="clip-folder" name="folder" value="${esc(state.storage.folder)}" required spellcheck="false">
+            ${state.setup.windows ? button("Browse…", "browse-clip-folder") : ""}
+          </div>
+          <p>New runs and saved versions use this folder.</p>
+          <div class="actions"><button class="primary">Save folder</button>${button("Open clips folder", "open-clip-folder")}
+            <button type="button" data-act="reset-clip-folder"${state.storage.custom ? "" : " hidden"}>Use default</button>
+          </div>
+          <p class="error form-message" role="alert"></p>
+        </form>
+      </section>
+      <div class="stack"><section class="surface"><h2>Capture</h2>
         <form id="limits" class="form">
           <div class="field"><label for="capture-limit">Concurrent captures</label> ${info("Capture limit")}
             <input type="number" id="capture-limit" name="limit" min="1" max="8" value="${state.slots.limit}" required>
@@ -981,8 +999,29 @@ function settings() {
       <section class="surface"><div class="section-head"><h2>Local model</h2>${info("Qwen review")}</div>
         <p>${esc(state.model)}</p>
         <a class="text-link" href="#setup">Manage tools and models</a>
-      </section>
+      </section></div>
     </div>`;
+}
+
+function updateClipFolder(previous) {
+  const field = $("#clip-folder");
+  if (!field) return;
+  if (
+    (!previous || field.value === previous.folder) &&
+    field.value !== state.storage.folder
+  )
+    field.value = state.storage.folder;
+  $('[data-act="reset-clip-folder"]').hidden = !state.storage.custom;
+}
+
+async function saveClipFolder(folder) {
+  state.storage = await post("clip-folder", { folder });
+  updateClipFolder();
+  const error = $("#clip-folder-form [role=alert]");
+  if (error) error.textContent = "";
+  notify(
+    folder === null ? "Default clips folder restored" : "Clips folder saved",
+  );
 }
 function draw() {
   const title = nav[page];
@@ -1036,6 +1075,10 @@ function patchRegion(id, markup) {
   }
 }
 function updatePublishing() {
+  if (!pageDetail) {
+    patchRegion("publishing-options", publishingOptions(state.publishing));
+    return;
+  }
   patchRegion("posting-summary", publishingSummary(state.publishing));
   patchRegion(
     "setup-steps",
@@ -1082,6 +1125,7 @@ async function refresh() {
     patchRegion("setup-tool-list", toolList(state.setup.tools));
     updateSetup(state.setup, state.connections);
   }
+  if (page === "settings") updateClipFolder(before.storage);
   if (
     page === "publishing" &&
     JSON.stringify(before.publishing) !== JSON.stringify(state.publishing)
@@ -1191,6 +1235,11 @@ document.addEventListener("submit", async (event) => {
       await post("limit", { limit: Number(f.get("limit")) });
       notify("Capture limit saved");
     }
+    if (form.id === "clip-folder-form") {
+      form.querySelector("[role=alert]").textContent = "";
+      await saveClipFolder(f.get("folder"));
+      return;
+    }
     if (form.matches("[data-connection-form]")) {
       form.querySelector("[role=alert]").textContent = "";
       const entries = [...f]
@@ -1240,7 +1289,11 @@ document.addEventListener("submit", async (event) => {
     if (form.id === "source-form" && form.isConnected) {
       $("#checked").innerHTML = "";
       sourceError(error.message);
-    } else if (form.matches("[data-connection-form]") && form.isConnected) {
+    } else if (
+      (form.id === "clip-folder-form" ||
+        form.matches("[data-connection-form]")) &&
+      form.isConnected
+    ) {
       form.querySelector("[role=alert]").textContent = error.message;
     } else notify(error.message);
   } finally {
@@ -1333,6 +1386,21 @@ document.addEventListener("click", async (event) => {
       case "setup":
         await post("setup", { action: id });
         await refresh();
+        return;
+      case "browse-clip-folder": {
+        const { path } = await post("pick", { folder: true });
+        if (target.isConnected && path) {
+          $("#clip-folder").value = path;
+          $("#clip-folder-form .primary").focus();
+        }
+        return;
+      }
+      case "open-clip-folder":
+        await post("open-clip-folder", {});
+        return;
+      case "reset-clip-folder":
+        await saveClipFolder(null);
+        $("#clip-folder")?.focus();
         return;
       case "remove-connection": {
         await post("connections", { [id]: null });

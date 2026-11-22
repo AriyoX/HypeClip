@@ -84,7 +84,7 @@ function setupNext(p) {
   ];
 }
 
-export function publishingStatus(p, showR2 = false) {
+function publishingStatus(p) {
   const destination = p.name
     ? esc(p.name) + (p.destination === "disconnected" ? " · Disconnected" : "")
     : destinationStatus[p.destination];
@@ -100,36 +100,42 @@ export function publishingStatus(p, showR2 = false) {
   return `<dl class="status-list">
     <div><dt>Buffer connection</dt><dd>${bufferStatus[p.buffer]}</dd></div>
     <div><dt>TikTok destination</dt><dd>${destination}</dd></div>
-    ${showR2 ? `<div><dt>R2 video delivery</dt><dd>${r2}</dd></div>` : ""}
+    <div><dt>R2 video delivery</dt><dd>${r2}</dd></div>
     <div><dt>Automatic posting</dt><dd>${badge(automaticLabel(p.automatic), p.automatic.state === "enabled" ? "warm" : "")}</dd></div>
   </dl>`;
 }
 
-function postingAnswer(p) {
-  if (p.buffer === "verified" && p.automatic.state === "off")
-    return "Buffer is connected and publishing is off.";
-  if (p.automatic.state === "off") return "Automatic posting is off.";
-  return "Dashboard clips stay local.";
+export function overviewPublishing(p) {
+  return `<div class="section-head"><h2>Clips on this PC</h2></div>
+    ${p.automatic.state === "enabled" ? '<p class="publish-note">Automatic posting is on.</p>' : ""}
+    <div class="actions">${button("Open clips folder", "open-clip-folder")}<a href="#publishing">Publishing options</a></div>`;
 }
 
-export function overviewPublishing(p) {
-  return `<div class="section-head"><h2>Publishing</h2>${info("Publishing")}</div>
-  ${publishingStatus(p)}
-  ${p.buffer === "verified" && p.automatic.state === "off" ? `<p class="publish-note">${postingAnswer(p)}</p>` : ""}
-  <a class="text-link" href="#publishing">Set up automatic TikTok posting <span aria-hidden="true">↗</span></a>`;
+export function publishingOptions(p) {
+  const [step] = setupNext(p);
+  return `<section class="surface posting-answer">
+    <h2>Upload a clip yourself</h2>
+    <p>Open a clip, download its MP4, then upload it in TikTok. HypeClip saves your clips on this PC.</p>
+    <div class="actions"><a class="button primary" href="#clips">Open Clips</a><a href="#settings/storage">Change clips folder</a></div>
+  </section>
+  <section class="surface posting-answer">
+    <h2>Schedule with Buffer</h2>
+    <p>Buffer fetches the MP4 from a public link. HypeClip uses Cloudflare R2 for that upload.</p>
+    <a class="button" href="#publishing/${step}">${p.buffer === "missing" ? "Set up Buffer" : "Manage Buffer"}</a>
+  </section>`;
 }
 
 export function publishingSummary(p) {
   const [step, next, link] = setupNext(p);
   return `<section class="surface posting-answer">
-    <h2>Will my next clip be posted?</h2>
-    <p class="posting-verdict"><strong>No.</strong> ${postingAnswer(p)}</p>
+    <h2>Automatic posting setup</h2>
+    <p>Automatic posting applies to enabled command-line sessions.</p>
     <p>${esc(next)}</p>
     <a class="button primary" href="#publishing/${step}">${link} <span aria-hidden="true">↓</span></a>
   </section>
   <section class="surface">
     <div class="section-head"><h2>Publishing status</h2>${info("Publishing")}</div>
-    ${publishingStatus(p, true)}
+    ${publishingStatus(p)}
   </section>`;
 }
 
@@ -262,9 +268,10 @@ export function publishingSteps(p, selectedStep, channels) {
 }
 
 export function publishingPage(config, step, channels) {
-  return `<div class="page-head"><div><h1>Set up automatic TikTok posting</h1>
-    <p>Watching streams, creating clips and downloading MP4s all work locally without a publishing account.</p>
-  </div></div>
+  if (!step)
+    return `<div class="page-head"><h1>Publishing</h1></div>
+    <div class="overview-grid setup-summary" id="publishing-options">${publishingOptions(config)}</div>`;
+  return `<div class="page-head"><h1>Schedule with Buffer</h1><a href="#publishing">All publishing options</a></div>
   <div class="overview-grid setup-summary" id="posting-summary">${publishingSummary(config)}</div>
-  <div class="setup-steps" id="setup-steps">${publishingSteps(config, step || setupNext(config)[0], channels)}</div>`;
+  <div class="setup-steps" id="setup-steps">${publishingSteps(config, step, channels)}</div>`;
 }

@@ -10,7 +10,7 @@ export function libraryDb() {
   mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(join(dir, "library.sqlite"));
   db.exec(
-    "PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS exports(id TEXT PRIMARY KEY,path TEXT UNIQUE,added INTEGER); CREATE TABLE IF NOT EXISTS sources(id TEXT PRIMARY KEY,config TEXT,enabled INTEGER DEFAULT 0,saved INTEGER DEFAULT 0,state TEXT,reason TEXT,updated INTEGER)",
+    "PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS exports(id TEXT PRIMARY KEY,path TEXT UNIQUE,added INTEGER); CREATE TABLE IF NOT EXISTS sources(id TEXT PRIMARY KEY,config TEXT,enabled INTEGER DEFAULT 0,saved INTEGER DEFAULT 0,state TEXT,reason TEXT,updated INTEGER); CREATE TABLE IF NOT EXISTS studio_settings(name TEXT PRIMARY KEY,value TEXT NOT NULL)",
   );
   return db;
 }

@@ -4,11 +4,11 @@ HypeClip is a local Windows studio for monitoring English-speaking GTA VI stream
 
 ## Install on Windows
 
-1. Extract the HypeClip ZIP to a folder you can write to and open **Start HypeClip.cmd**. The launcher offers to install Node.js LTS if needed, installs the app packages, and opens the dashboard.
-2. In **Setup**, choose **Install tools and models**. HypeClip checks and reuses existing tools or installs Python, FFmpeg, FFprobe, and Ollama. It sets up the Python worker, downloads the pinned Whisper speech model, and verifies an Ollama review model. A fresh setup can download several GB. [Windows Package Manager](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
-3. Choose **Continue to Monitor** to use a local recording. For live links, install **Streamlink** in Setup. Enter Twitch, YouTube, Buffer, or Cloudflare R2 credentials there when you need those connections.
+1. Open the **HypeClip Setup** installer and follow the prompts. Use **HypeClip** in the Windows Start menu to open it again. With the ZIP version, choose **Extract All**, then double-click **Start HypeClip.cmd** inside the extracted **HypeClip** folder.
+2. If prompted, accept the Node.js install. In the browser, choose **Setup → Install tools and models**. Allow time for several GB of downloads on the first run. [Windows Package Manager](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
+3. Choose **Continue to Monitor** to try a local recording. Use **Quick start** in Setup for the first-clip walkthrough. [Quick start](Start%20Here.html)
 
-The launcher targets Windows x64. If Windows cannot find WinGet, install or update **App Installer** in the Microsoft Store. Open **Start HypeClip.cmd** again to resume. Keep its window open and your PC awake when monitoring. [Open the local dashboard](http://127.0.0.1:4177)
+Use a Windows x64 PC with internet access for the first setup. If Windows blocks the unsigned installer, use the ZIP version. If setup reports a WinGet error, install or update **App Installer** in the Microsoft Store, then run HypeClip again. Keep the HypeClip window open and the PC awake when monitoring.
 
 ## Monitor and review clips
 
@@ -17,7 +17,7 @@ The launcher targets Windows x64. If Windows cannot find WinGet, install or upda
 3. Use **Monitor** to follow capture, chat and clip progress or stop a source. The CLI and dashboard share two capture slots by default. Use **Technical details** to inspect errors and processing events.
 4. Open **Clips** to play and download finished MP4s. Choose **Needs review** to work through the queue. **Compare cuts** opens two exports of the same moment at the same source time. **Presentation** previews a new layout or caption treatment using cached media and speech. Saving creates a separate export.
 
-Local studio work needs no publishing account. Dashboard exports go in your Windows Videos folder under `HypeClip\Studio`. Use **Open folder** to locate an MP4. **Publishing** shows the Buffer connection, TikTok destination and separate CLI automatic-posting setting.
+Dashboard exports go to `Videos\HypeClip\Studio` by default. Choose **Settings → Clips folder** to pick a location for new runs and saved versions. Use **Open folder** on a clip to find its MP4. Upload that file in TikTok for manual posting. Making, saving, and manually uploading clips requires no R2 setup.
 
 To start at Windows sign-in, finish Setup first. In Task Scheduler, create a task for your Windows account with an **At log on** trigger. Use `powershell.exe` as the program and enter `-NoProfile -ExecutionPolicy Bypass -File "C:\path\to\HypeClip\scripts\start-windows.ps1" -NoBrowser` as the arguments, using your actual path. Set **If the task is already running** to **Do not start a new instance**. At the next sign-in, open **Monitor** and check the source state.
 
@@ -25,11 +25,11 @@ To start at Windows sign-in, finish Setup first. In Task Scheduler, create a tas
 
 | What you want to do | What to set up |
 | --- | --- |
-| Review a local recording or accessible public Kick archive | The local tools below. Kick replay chat is fetched when available. |
+| Review a local recording or accessible public Kick archive | Tools and models from **Setup**. Kick replay chat is fetched when available. |
 | Monitor a live channel | Install Streamlink in **Setup**. Use **Check source** on the channel you want to follow. |
 | Read Twitch or YouTube audience chat | Save the corresponding reader in **Setup**. Twitch uses a user token. YouTube uses a Data API key or access token. |
 | Use TikTok LIVE | A playable live room or a creator-provided recording. Supply a timestamped chat export for chat detection. Native TikTok chat collection is unavailable. |
-| Publish through Buffer later | Configure Buffer and R2 in **Setup**. The separate CLI workflow controls posting authorization. |
+| Schedule TikTok posts through Buffer | Configure Buffer and R2 in **Setup**. The separate CLI workflow controls posting authorization. |
 
 **Sources → Stream chat** explains optional reader credentials. Run `pnpm hypeclip providers --check` to inspect this installation. [Provider setup guide](docs/monitor.md)
 
@@ -58,6 +58,8 @@ Run `pnpm hypeclip setup --check` to see readiness without installing anything. 
 Setup saves the optional connection values in `connections.json` under your HypeClip state directory. The default is `%LOCALAPPDATA%\HypeClip` on Windows and `$XDG_STATE_HOME/HypeClip` or `~/.local/state/HypeClip` on Linux. `HYPECLIP_HOME` overrides the path. The file contains plaintext credentials, so share the HypeClip download and keep this file private. Shell variables take precedence, followed by values saved or removed in Setup, then the checkout’s optional `.env`. New monitoring runs use saved values immediately. [Advanced environment options](.env.example)
 
 `pnpm hypeclip demo` renders and evaluates a local fixture. `pnpm verify:local` exercises speech, a real Ollama decision, an endpoint outage, and retry. The worker accepts `python -m workers.media --request <json-file> --result <json-file>`. [V1 contracts and examples](contracts/README.md)
+
+To build the Windows installer and ZIP from the current commit, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-windows.ps1`. The build verifies the portable NSIS compiler and writes both files under `.hypeclip\releases`. [NSIS releases](https://nsis.sourceforge.io/Download)
 
 ## From an authorized recording to a clip
 
@@ -95,6 +97,8 @@ The coordinator admits at most 12 pending windows by default, advances two jobs 
 Jobs retain their destination and delivery mode. Automatic sends also require the matching enabled policy at send time. Active sessions sharing a destination use the smallest configured cap as their combined budget against automatic intents in this database. The existing unique claims, rate-limit cooldown and ambiguous-response reconciliation still apply. Explicitly authorized EventSub channels sharing one identity can use `collect-multi --manifest PATH`, with an array of `{broadcaster, session, path}` entries. The local demo uses synthetic chat.
 
 ## Publish to TikTok
+
+For manual posting, open **Clips**, choose **Download MP4**, and upload the file in TikTok. To schedule through HypeClip, use the Buffer setup below. The Buffer API needs a direct public HTTPS link that stays available until the post publishes. [Buffer media hosting](https://developers.buffer.com/guides/hosting-media.html)
 
 Connect the intended TikTok profile in Buffer. Save the Buffer API key in **Setup**, then use **Publishing → Find TikTok channels** to select it. Create a dedicated HypeClip R2 bucket, attach a public HTTPS domain, and save the bucket and scoped credentials under **Setup → Cloudflare R2**. Keep its objects publicly readable through publication. Enter **Manual posting requirements** if the account needs manual privacy selection, commercial disclosure, approval or notification posting. Such clips go to review. [Buffer media hosting](https://developers.buffer.com/guides/hosting-media.html)
 

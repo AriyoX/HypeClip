@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HypeClip Quick Start</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font:
+          1rem/1.55 system-ui,
+          sans-serif;
+        color: #202923;
+        background: #f3f3eb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      main {
+        max-width: 51rem;
+        margin: auto;
+        padding: clamp(1rem, 5vw, 3rem);
+      }
+      h1 {
+        font-size: clamp(2rem, 5vw, 3rem);
+        line-height: 1.1;
+        margin: 0 0 0.75rem;
+      }
+      h2 {
+        font-size: 1.3rem;
+        margin: 0 0 0.6rem;
+      }
+      section {
+        background: #fdfdf7;
+        border: 1px solid #d5d9ce;
+        border-radius: 0.9rem;
+        margin-top: 1rem;
+        padding: 1.1rem 1.4rem;
+      }
+      p,
+      ol,
+      ul {
+        margin: 0;
+      }
+      ol,
+      ul {
+        padding-left: 1.35rem;
+      }
+      li + li,
+      p + p {
+        margin-top: 0.55rem;
+      }
+      a {
+        color: #244e31;
+        text-underline-offset: 0.2em;
+      }
+      a:focus-visible {
+        outline: 2px solid #55783e;
+        outline-offset: 3px;
+      }
+      code {
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Start using HypeClip</h1>
+      <p>
+        Use a Windows x64 PC with internet access for the first setup. Models
+        and tools can take several GB.
+      </p>
+
+      <section aria-labelledby="install">
+        <h2 id="install">Open HypeClip</h2>
+        <ul>
+          <li>
+            <strong>Installer</strong> — Open the HypeClip Setup file and choose
+            <strong>Install</strong>. Use <strong>HypeClip</strong> in the
+            Windows Start menu to open it again.
+          </li>
+          <li>
+            <strong>ZIP</strong> — Right-click the ZIP and choose
+            <strong>Extract All</strong>. Open the extracted
+            <strong>HypeClip</strong> folder and double-click
+            <strong>Start HypeClip.cmd</strong>. Windows may show the name as
+            <strong>Start HypeClip</strong>.
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="setup">
+        <h2 id="setup">Set up tools and models</h2>
+        <ol>
+          <li>
+            Accept the Node.js install if the launcher asks. HypeClip opens in
+            your browser.
+          </li>
+          <li>
+            If you land on <strong>Setup</strong>, choose
+            <strong>Install tools and models</strong>. Approve the Windows
+            installer prompts and wait for the tools to show
+            <strong>Ready</strong>.
+          </li>
+          <li>
+            Choose <strong>Continue to Monitor</strong>. You can make and save
+            clips without an account or API key.
+          </li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="clip">
+        <h2 id="clip">Make your first clip</h2>
+        <ol>
+          <li>
+            In <strong>Monitor</strong>, choose
+            <strong>Choose a stream</strong>, then
+            <strong>Local recording</strong>. Browse for a video you have
+            permission to edit.
+          </li>
+          <li>
+            Choose <strong>Check source</strong>, confirm your permission, then
+            choose <strong>Monitor once</strong>. HypeClip scans the recording
+            for a highlight.
+          </li>
+          <li>
+            Open <strong>Clips</strong> to watch the result. Choose
+            <strong>Open folder</strong> to find the saved MP4 or
+            <strong>Download MP4</strong> to take a copy.
+          </li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="storage">
+        <h2 id="storage">Save and share clips</h2>
+        <p>
+          Clips go to <code>Videos\HypeClip\Studio</code> by default. To pick
+          another drive or folder, open
+          <strong>Settings → Clips folder</strong>, choose
+          <strong>Browse</strong>, then <strong>Save folder</strong>.
+        </p>
+        <p>
+          To post yourself, upload the saved MP4 in TikTok. Use
+          <strong>Publishing → Schedule with Buffer</strong> for automatic
+          posting. That option uses R2 to give Buffer a public link to the
+          finished MP4.
+          <a href="https://developers.buffer.com/guides/hosting-media.html"
+            >Buffer’s media requirements</a
+          >
+        </p>
+      </section>
+
+      <section aria-labelledby="help">
+        <h2 id="help">Run again or get unstuck</h2>
+        <ul>
+          <li>
+            Keep the HypeClip window open and the PC awake while a source is
+            running. If you close the browser tab, open HypeClip again.
+          </li>
+          <li>
+            For live links, install <strong>Streamlink</strong> in
+            <strong>Setup</strong>. Add Twitch or YouTube credentials there if
+            you want to collect chat on those services.
+          </li>
+          <li>
+            If you see an <strong>App Installer</strong> or
+            <strong>WinGet</strong> error, install or update
+            <strong>App Installer</strong> in the Microsoft Store and try again.
+          </li>
+          <li>
+            The Windows installer is unsigned. If Windows blocks it, use the ZIP
+            version.
+          </li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

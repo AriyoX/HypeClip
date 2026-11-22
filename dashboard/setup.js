@@ -50,7 +50,7 @@ function connectionGroup({ id, label, fields }, selected) {
 }
 
 export function setupPage(setup, connections, selected) {
-  return `<div class="page-head"><h1>Setup</h1><a id="setup-continue" href="#overview" class="button primary" hidden>Continue to Monitor</a></div>
+  return `<div class="page-head"><h1>Setup</h1><div class="page-actions"><a href="/guide" target="_blank" rel="noreferrer">Quick start</a><a id="setup-continue" href="#overview" class="button primary" hidden>Continue to Monitor</a></div></div>
     <div class="setup-layout">
       <section class="surface setup-tools" aria-labelledby="setup-tools-title">
         <h2 id="setup-tools-title">Local tools and models</h2>
@@ -73,7 +73,7 @@ export function setupPage(setup, connections, selected) {
     </div>
     <section class="setup-connections" aria-labelledby="connections-title">
       <h2 id="connections-title">Optional connections</h2>
-      <p>Credentials are saved on this PC. Leave a field blank to keep its value.</p>
+      <p>You can make and save clips without an account. Blank fields keep saved values.</p>
       <div class="connection-grid">${connections.map((group) => connectionGroup(group, selected)).join("")}</div>
     </section>`;
 }

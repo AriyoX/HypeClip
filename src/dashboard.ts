@@ -15,7 +15,6 @@ import {
   statSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { pipeline } from "node:stream/promises";
@@ -35,6 +34,7 @@ import { providerRows } from "./providers.ts";
 import { localModel, safeMessage, writeJson } from "./local.ts";
 import type { Connections } from "./connections.ts";
 import { guidedSetup, setupActions } from "./guided-setup.ts";
+import { clipStorage } from "./clip-storage.ts";
 import { dashboardPublishing } from "./dashboard-publishing.ts";
 import {
   dashboardActivity,
@@ -44,7 +44,38 @@ import {
 
 const repo = fileURLToPath(new URL("../", import.meta.url));
 const root = () => join(sharedHome(), "studio");
-const videos = () => join(homedir(), "Videos", "HypeClip", "Studio");
+
+function openStudio(url: string) {
+  const command =
+    process.platform === "win32"
+      ? "rundll32.exe"
+      : process.platform === "darwin"
+        ? "open"
+        : "xdg-open";
+  const args =
+    process.platform === "win32" ? ["url.dll,FileProtocolHandler", url] : [url];
+  execFile(command, args, { windowsHide: true }, (error) => {
+    if (error) console.log("Open " + url + " in your browser.");
+  });
+}
+
+async function isStudioRunning(url: string) {
+  try {
+    const response = await fetch(url + "/api/state", {
+      signal: AbortSignal.timeout(3000),
+      redirect: "error",
+    });
+    if (!response.ok) return false;
+    const state = await response.json();
+    return (
+      Array.isArray(state.clips) &&
+      Array.isArray(state.sources) &&
+      typeof state.slots?.limit === "number"
+    );
+  } catch {
+    return false;
+  }
+}
 type Task = {
   state: string;
   reason: string;
@@ -146,9 +177,14 @@ async function mediaFile(
     () => {},
   );
 }
-export async function dashboard(port: number, connections: Connections, open: boolean) {
+export async function dashboard(
+  port: number,
+  connections: Connections,
+  open: boolean,
+) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
     throw Error("Use a dashboard port from 1024 to 65535");
+  const url = "http://127.0.0.1:" + port;
   const db = libraryDb(),
     lock = new DatabaseSync(join(root(), "dashboard.lock.sqlite"));
   try {
@@ -156,20 +192,27 @@ export async function dashboard(port: number, connections: Connections, open: bo
   } catch {
     lock.close();
     db.close();
+    if (open && (await isStudioRunning(url))) {
+      openStudio(url);
+      return;
+    }
     throw Error(
       "HypeClip dashboard is already running. Open its existing localhost tab.",
     );
   }
-  const url = "http://127.0.0.1:" + port,
-    hosts = new Set(["127.0.0.1:" + port, "localhost:" + port]);
+  const hosts = new Set(["127.0.0.1:" + port, "localhost:" + port]);
   const setup = guidedSetup(),
+    storage = clipStorage(db),
     active = new Map<string, Task>(),
     inspected = new Map<string, CheckedSource>();
   let publishing = dashboardPublishing();
   const secrets = new Set<string>();
   function rememberSecrets() {
     for (const [key, value] of Object.entries(process.env))
-      if (value?.trim() && /TOKEN|SECRET|PASSWORD|ACCESS_KEY|API_KEY/i.test(key))
+      if (
+        value?.trim() &&
+        /TOKEN|SECRET|PASSWORD|ACCESS_KEY|API_KEY/i.test(key)
+      )
         secrets.add(value.trim());
   }
   rememberSecrets();
@@ -235,7 +278,7 @@ export async function dashboard(port: number, connections: Connections, open: bo
       cfg = JSON.parse(String(row.config));
     if (!cfg.home) {
       cfg.home = join(root(), "runs", id, randomUUID());
-      cfg.exports = join(videos(), basename(cfg.home));
+      cfg.exports = join(storage.status().folder, basename(cfg.home));
       db.prepare("UPDATE sources SET config=? WHERE id=?").run(
         JSON.stringify(cfg),
         id,
@@ -420,7 +463,11 @@ export async function dashboard(port: number, connections: Connections, open: bo
     }
     const setupStatus = setup.status();
     let model = "Unconfigured";
-    try { model = localModel().model || model; } catch { model = "Check Ollama configuration"; }
+    try {
+      model = localModel().model || model;
+    } catch {
+      model = "Check Ollama configuration";
+    }
     return {
       sources,
       clips,
@@ -452,6 +499,7 @@ export async function dashboard(port: number, connections: Connections, open: bo
       publishing: publishing.status(),
       setup: setupStatus,
       connections: connections.status(),
+      storage: storage.status(),
     };
   }
   const server = createServer(async (req, res) => {
@@ -484,6 +532,14 @@ export async function dashboard(port: number, connections: Connections, open: bo
       if (req.method === "GET" || req.method === "HEAD") {
         if (path === "/api/state") {
           respond(await snapshot());
+          return;
+        }
+        if (path === "/guide") {
+          res.writeHead(200, {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache",
+          });
+          res.end(readFileSync(join(repo, "Start Here.html")));
           return;
         }
         const details = /^\/api\/clip-details\/([\w-]+)$/.exec(path);
@@ -579,7 +635,10 @@ export async function dashboard(port: number, connections: Connections, open: bo
       if (path === "/api/connections") {
         const changed = connections.save(b);
         rememberSecrets();
-        if (changed.includes("BUFFER_ACCESS_TOKEN") || changed.includes("BUFFER_CHANNEL_ID"))
+        if (
+          changed.includes("BUFFER_ACCESS_TOKEN") ||
+          changed.includes("BUFFER_CHANNEL_ID")
+        )
           publishing = dashboardPublishing();
         respond({ ok: true });
         return;
@@ -594,10 +653,17 @@ export async function dashboard(port: number, connections: Connections, open: bo
         const filter = b.chat
           ? "Timestamped chat (*.jsonl)|*.jsonl"
           : "Recordings (*.mp4;*.mkv;*.mov;*.ts;*.webm)|*.mp4;*.mkv;*.mov;*.ts;*.webm";
+        const folder = b.folder === true;
         const cmd =
-          "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='" +
-          filter +
-          "'; if ($d.ShowDialog() -eq 'OK') { [Console]::OutputEncoding=[Text.Encoding]::UTF8; [Console]::Write($d.FileName) }";
+          "Add-Type -AssemblyName System.Windows.Forms; " +
+          (folder
+            ? "$d=New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description='Choose a folder for finished clips'; "
+            : "$d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='" +
+              filter +
+              "'; ") +
+          "if ($d.ShowDialog() -eq 'OK') { [Console]::OutputEncoding=[Text.Encoding]::UTF8; [Console]::Write($d." +
+          (folder ? "SelectedPath" : "FileName") +
+          ") }";
         const { stdout } = await promisify(execFile)(
           "powershell.exe",
           ["-NoProfile", "-STA", "-Command", cmd],
@@ -664,12 +730,51 @@ export async function dashboard(port: number, connections: Connections, open: bo
       if (path === "/api/find-destinations") {
         const current = publishing;
         const channels = await current.find();
-        if (current !== publishing) throw Error("Buffer settings changed. Find channels again.");
+        if (current !== publishing)
+          throw Error("Buffer settings changed. Find channels again.");
         respond({ channels, publishing: publishing.status() });
         return;
       }
       if (path === "/api/limit") {
         setCaptureLimit(z.number().int().parse(b.limit));
+        respond({ ok: true });
+        return;
+      }
+      if (path === "/api/clip-folder") {
+        const folder = z
+          .string()
+          .trim()
+          .min(1)
+          .max(4096)
+          .nullable()
+          .parse(b.folder);
+        respond(storage.save(folder));
+        return;
+      }
+      if (path === "/api/open-clip-folder") {
+        const { folder, custom } = storage.status();
+        if (custom) {
+          if (!existsSync(folder) || !statSync(folder).isDirectory())
+            throw Error(
+              "Connect the drive or choose another clips folder in Settings.",
+            );
+        } else mkdirSync(folder, { recursive: true });
+        const command =
+          process.platform === "win32"
+            ? "explorer.exe"
+            : process.platform === "darwin"
+              ? "open"
+              : "xdg-open";
+        const child = spawn(command, [folder], {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: true,
+        });
+        await new Promise<void>((ready, fail) => {
+          child.once("error", fail);
+          child.once("spawn", ready);
+        });
+        child.unref();
         respond({ ok: true });
         return;
       }
@@ -749,7 +854,7 @@ export async function dashboard(port: number, connections: Connections, open: bo
       if (path === "/api/save") {
         const preview = previews.get(b.id);
         if (!preview) throw Error("Render a preview first");
-        const rootDir = join(videos(), "Versions");
+        const rootDir = join(storage.status().folder, "Versions");
         mkdirSync(rootDir, { recursive: true });
         const dest = join(rootDir, b.id);
         if (!existsSync(dest)) {
@@ -786,13 +891,7 @@ export async function dashboard(port: number, connections: Connections, open: bo
       server.once("error", fail);
       server.listen(port, "127.0.0.1", () => {
         console.log(url);
-        if (open) {
-          const command = process.platform === "win32" ? "rundll32.exe" : process.platform === "darwin" ? "open" : "xdg-open";
-          const args = process.platform === "win32" ? ["url.dll,FileProtocolHandler", url] : [url];
-          execFile(command, args, { windowsHide: true }, (error) => {
-            if (error) console.log("Open " + url + " in your browser.");
-          });
-        }
+        if (open) openStudio(url);
         ok();
       });
     });

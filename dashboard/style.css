@@ -537,14 +537,12 @@ button:disabled {
 .status-list .badge {
   text-align: right;
 }
-.publishing-card > a {
-  align-self: start;
+.publishing-card > .actions {
   margin-top: auto;
-  padding-top: 17px;
 }
 .publish-note {
   color: var(--muted);
-  margin: 13px 0 4px;
+  margin-bottom: 14px;
 }
 
 .active-panel {
@@ -882,6 +880,10 @@ input[type="checkbox"] {
 .form-message:empty {
   display: none;
 }
+#clip-folder-form .fieldrow input {
+  flex: 1 1 15rem;
+  width: auto;
+}
 
 .setup-layout,
 .connection-grid {
@@ -1206,18 +1208,17 @@ input[type="checkbox"] {
 .posting-answer h2 {
   font-size: clamp(1.9rem, 3.4vw, 2.7rem);
 }
-.posting-answer .posting-verdict {
+.posting-answer h2 + p {
   margin-top: 0.75rem;
-  font-weight: 700;
-  color: #f7faee;
-}
-.posting-verdict strong {
-  color: var(--lime);
 }
 .posting-answer p {
   color: #dce5d6;
 }
-.posting-answer .button {
+.posting-answer a:not(.button) {
+  color: var(--lime);
+}
+.posting-answer > .button,
+.posting-answer > .actions {
   margin-top: 14px;
 }
 .posting-answer :focus-visible {
