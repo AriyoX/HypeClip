@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#16241c" />
+    <meta
+      name="description"
+      content="Download HypeClip for Windows to turn streams and recordings into vertical clips on your PC."
+    />
+    <title>HypeClip for Windows</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="masthead">
+      <div class="shell header-inner">
+        <a class="brand" href="./" aria-label="HypeClip home"
+          ><span class="mark" aria-hidden="true"></span>HypeClip</a
+        >
+        <nav aria-label="Main navigation">
+          <a href="#quick-start">Quick start</a>
+          <a href="#source">Source code</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="hero" aria-labelledby="download-heading">
+        <div class="shell hero-grid">
+          <div class="intro">
+            <h1 id="download-heading">HypeClip for Windows</h1>
+            <p class="lead">
+              Turn streams and recordings into vertical clips. HypeClip runs on
+              your PC and opens the studio in your browser.
+            </p>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="https://github.com/AriyoX/HypeClip/releases/download/v0.1.0-preview.1/HypeClip-Setup.exe"
+                >Download installer</a
+              >
+              <a
+                class="button secondary"
+                href="https://github.com/AriyoX/HypeClip/releases/download/v0.1.0-preview.1/HypeClip-Windows.zip"
+                >Download ZIP</a
+              >
+            </div>
+            <p class="requirements">
+              Windows x64 · Internet access for first setup
+            </p>
+            <p class="download-note">
+              If Windows blocks the unsigned installer, use the ZIP.
+            </p>
+          </div>
+
+          <figure class="preview">
+            <img
+              src="assets/studio.png"
+              width="1280"
+              height="850"
+              alt="A sample clip in HypeClip with a vertical preview, review controls, and a Download MP4 button"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section
+        class="shell section"
+        id="quick-start"
+        aria-labelledby="quick-heading"
+      >
+        <div class="section-head">
+          <h2 id="quick-heading">Quick start</h2>
+          <a href="quick-start.html">Read the full guide</a>
+        </div>
+        <ol class="steps" role="list">
+          <li>
+            <h3>Open HypeClip</h3>
+            <p>
+              Run the installer, then open <strong>HypeClip</strong> from the
+              Start menu. For the ZIP, choose <strong>Extract All</strong> and
+              open <strong>Start HypeClip.cmd</strong>.
+            </p>
+          </li>
+          <li>
+            <h3>Install tools and models</h3>
+            <p>
+              In the browser, open <strong>Setup</strong> and choose
+              <strong>Install tools and models</strong>. Allow time for several
+              GB of downloads.
+            </p>
+          </li>
+          <li>
+            <h3>Make your first clip</h3>
+            <p>
+              Choose a local recording you have permission to edit, check the
+              source, and select <strong>Monitor once</strong>. Find finished
+              MP4s in <strong>Clips</strong>.
+            </p>
+          </li>
+        </ol>
+        <p class="local-note">
+          Local clips work without API keys. Pick a save location in
+          <strong>Settings → Clips folder</strong>.
+        </p>
+      </section>
+
+      <section
+        class="source-section"
+        id="source"
+        aria-labelledby="source-heading"
+      >
+        <div class="shell source-grid">
+          <div>
+            <h2 id="source-heading">Run from your own fork</h2>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="https://github.com/AriyoX/HypeClip/fork"
+                >Fork on GitHub</a
+              >
+              <a
+                href="https://github.com/AriyoX/HypeClip/tree/codex/guided-setup"
+                >Browse the setup branch</a
+              >
+            </div>
+          </div>
+          <ol class="fork-steps">
+            <li>
+              When creating the fork, clear
+              <strong>Copy the main branch only</strong>.
+            </li>
+            <li>
+              In your fork, select <code>codex/guided-setup</code> and choose
+              <strong>Code → Download ZIP</strong>.
+            </li>
+            <li>
+              Extract the ZIP and run <strong>Start HypeClip.cmd</strong>.
+            </li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell footer">
+      <span>HypeClip</span>
+      <a href="https://github.com/AriyoX/HypeClip/releases/tag/v0.1.0-preview.1"
+        >Windows preview release</a
+      >
+    </footer>
+  </body>
+</html>
