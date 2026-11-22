@@ -21,7 +21,12 @@ import {
 import type { Acquire } from "./stages.ts";
 import { reactions, type Spike } from "./detector.ts";
 import { questionEnding } from "./question-ending.ts";
-import { assessments, evidenceRows, traceClaims } from "./evidence.ts";
+import {
+  assessments,
+  evidenceRows,
+  sameQuote,
+  traceClaims,
+} from "./evidence.ts";
 
 const unit = z.number().min(0).max(1);
 export const SceneCaption = z
@@ -773,6 +778,9 @@ export async function prepareEdit(
         text: w.text,
       }));
   const trace = decision ? traceClaims(decision, rows) : undefined;
+  const verifiedCaption =
+    decision &&
+    postOptions.find((option) => sameQuote(option, decision!.suggestedCaption));
   if (decision && trace) {
     if (
       decision.payoffLine &&
@@ -797,10 +805,7 @@ export async function prepareEdit(
       !settings.context?.fact.includes(decision.overlay)
     )
       trace.issues.push("The proposed scene text lacks verified context");
-    if (
-      decision.suggestedCaption &&
-      !postOptions.includes(decision.suggestedCaption)
-    )
+    if (decision.suggestedCaption && !verifiedCaption)
       trace.issues.push(
         "The proposed description is outside the verified choices",
       );
@@ -961,11 +966,7 @@ export async function prepareEdit(
   };
   // Captions used outside the model stay attributable to a reviewed observation or a verbatim quote.
   const caption =
-    marker?.caption ||
-    marker?.observation ||
-    (decision && postOptions.includes(decision.suggestedCaption)
-      ? decision.suggestedCaption
-      : postOptions[0]);
+    marker?.caption || marker?.observation || verifiedCaption || postOptions[0];
   return {
     cut,
     evaluation,

@@ -15,6 +15,11 @@ export const assessments = {
   reject: "The cited passage offers little standalone context.",
   review: "The supplied evidence needs review.",
 };
+export function sameQuote(a: string, b: string) {
+  const normalized = (s: string) =>
+    s.trim().replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+  return normalized(a) === normalized(b);
+}
 export function evidenceRows(
   segments: Transcript["segments"],
   audience: ReturnType<typeof reactions>,
@@ -54,7 +59,9 @@ export function traceClaims(
     issues.push("Missing or unknown timestamped evidence citation");
   if (
     opinion.reason !== assessments[opinion.decision] &&
-    !resolved.some((r) => r.kind === "speech" && r.text === opinion.reason.trim())
+    !resolved.some(
+      (r) => r.kind === "speech" && sameQuote(r.text, opinion.reason),
+    )
   )
     issues.push(
       "The model's reason contains a claim outside its cited evidence",

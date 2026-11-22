@@ -2,7 +2,12 @@ import { z } from "zod";
 import { localModel, safeMessage } from "./local.ts";
 import type { Transcript } from "./worker.ts";
 import { reactions, type Spike } from "./detector.ts";
-import { assessments, evidenceRows, traceClaims } from "./evidence.ts";
+import {
+  assessments,
+  evidenceRows,
+  sameQuote,
+  traceClaims,
+} from "./evidence.ts";
 export const Decision = z.strictObject({
   decision: z.enum(["accept", "review", "reject"]),
   score: z.number().int().min(0).max(100),
@@ -106,7 +111,8 @@ export async function evaluate(
     if (
       decision.suggestedCaption &&
       !evidenceTrace.resolved.some(
-        (r) => r.kind === "speech" && r.text === decision.suggestedCaption,
+        (r) =>
+          r.kind === "speech" && sameQuote(r.text, decision.suggestedCaption),
       )
     )
       evidenceTrace.issues.push(

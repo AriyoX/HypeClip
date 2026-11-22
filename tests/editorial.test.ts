@@ -16,7 +16,7 @@ import {
   renderNarration,
   prepareEdit,
 } from "../src/editorial.ts";
-import { traceClaims } from "../src/evidence.ts";
+import { sameQuote, traceClaims } from "../src/evidence.ts";
 import { questionEnding } from "../src/question-ending.ts";
 import { detect, reactions, type Chat } from "../src/detector.ts";
 import { fallbackSpike } from "../src/media-only.ts";
@@ -36,6 +36,15 @@ const airportQuestion = {
   endMs: 40240,
   text: "Can you go inside the airport?",
 };
+it("accepts typographic quote variants and rejects a changed word or negation", () => {
+  const approved =
+    "Heard on Adin Ross’s stream: “It doesn't make sense to not do that.”";
+  const model =
+    'Heard on Adin Ross’s stream: "It doesn\'t make sense to not do that."';
+  expect(sameQuote(approved, model)).toBe(true);
+  expect(sameQuote(approved, model.replace("not do", "do"))).toBe(false);
+  expect(sameQuote(approved, model.replace("that", "this"))).toBe(false);
+});
 const airportReply = { startMs: 42820, endMs: 43780, text: "You can't." };
 const airportEnding = (
   next: worker.Transcript["segments"],
