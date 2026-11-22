@@ -7,7 +7,7 @@ import {
   statSync,
   mkdirSync,
 } from "node:fs";
-import { dirname, relative, isAbsolute, sep, join } from "node:path";
+import { dirname, relative, isAbsolute, sep, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { jsonFile, writeJson, hashFile } from "./local.ts";
@@ -73,6 +73,20 @@ export function checkRequest(r: Request) {
 }
 const repo = fileURLToPath(new URL("../", import.meta.url));
 export class InvalidWorkerOutput extends Error {}
+export function workerLocation() {
+  const cwd = resolve(process.env.HYPECLIP_WORKER_ROOT || repo);
+  const venv = join(cwd, ".venv");
+  const interpreter = join(
+    venv,
+    process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
+  );
+  return {
+    cwd,
+    venv,
+    interpreter,
+    python: process.env.HYPECLIP_PYTHON || interpreter,
+  };
+}
 export function workerEnv() {
   // Allowlist only environment needed by Python, multimedia tools and local models.
   const allow =
@@ -87,14 +101,7 @@ export async function runWorkerModule(
   acquire?: Acquire,
   cancel?: AbortSignal,
 ) {
-  const cwd = process.env.HYPECLIP_WORKER_ROOT || repo;
-  const python =
-    process.env.HYPECLIP_PYTHON ||
-    join(
-      cwd,
-      ".venv",
-      process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
-    );
+  const { cwd, python } = workerLocation();
   const env = workerEnv();
   if (acquire)
     return controlledWorker(
@@ -124,14 +131,10 @@ export async function render(
     output = join(dir, "result.json");
   writeJson(input, r);
   const env = workerEnv();
-  const cwd = process.env.HYPECLIP_WORKER_ROOT || repo;
-  const venv = join(
-    cwd,
-    ".venv",
-    process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
-  );
-  const python =
-    process.env.HYPECLIP_PYTHON || (existsSync(venv) ? venv : "python");
+  const worker = workerLocation();
+  const cwd = worker.cwd;
+  const python = process.env.HYPECLIP_PYTHON ||
+    (existsSync(worker.interpreter) ? worker.interpreter : "python");
   let failed = false;
   try {
     if (acquire)

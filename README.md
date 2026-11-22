@@ -2,13 +2,15 @@
 
 HypeClip is a local Windows studio for monitoring English-speaking GTA VI streams and reviewing vertical clips. It can follow a creator watchlist, scan an archive, or process a local recording. Chat activity and audio identify candidates. Whisper supplies timed speech, Ollama evaluates the evidence, and FFmpeg renders the MP4 with the original audio.
 
-## Start monitoring on this PC
+## Install on Windows
 
-Start the dashboard from PowerShell. Keep this terminal open and the PC awake while it monitors. You can close Codex and the browser tab. [Open the local dashboard](http://127.0.0.1:4177)
+1. Extract the HypeClip ZIP to a folder you can write to and open **Start HypeClip.cmd**. The launcher offers to install Node.js LTS if needed, installs the app packages, and opens the dashboard.
+2. In **Setup**, choose **Install tools and models**. HypeClip checks and reuses existing tools or installs Python, FFmpeg, FFprobe, and Ollama. It sets up the Python worker, downloads the pinned Whisper speech model, and verifies an Ollama review model. A fresh setup can download several GB. [Windows Package Manager](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
+3. Choose **Continue to Monitor** to use a local recording. For live links, install **Streamlink** in Setup. Enter Twitch, YouTube, Buffer, or Cloudflare R2 credentials there when you need those connections.
 
-```powershell
-pnpm --dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard
-```
+The launcher targets Windows x64. If Windows cannot find WinGet, install or update **App Installer** in the Microsoft Store. Open **Start HypeClip.cmd** again to resume. Keep its window open and your PC awake when monitoring. [Open the local dashboard](http://127.0.0.1:4177)
+
+## Monitor and review clips
 
 1. Choose **Choose a stream** on **Monitor**. Pick a channel or the entire **Watchlist**, paste a supported link, or select a **Local recording**.
 2. Select **Check source**, confirm your capture and editing permission, then choose **Monitor once**. A live link can produce several clips and can retry if capture fails. It stops when capture finishes normally or you press **Stop**. The full watchlist keeps looking for eligible streams until stopped. Recordings and archive intervals are scanned once for up to one clip.
@@ -17,17 +19,17 @@ pnpm --dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashb
 
 Local studio work needs no publishing account. Dashboard exports go in your Windows Videos folder under `HypeClip\Studio`. Use **Open folder** to locate an MP4. **Publishing** shows the Buffer connection, TikTok destination and separate CLI automatic-posting setting.
 
-**Starting at Windows sign-in is optional.** For a dedicated monitoring PC, create a Task Scheduler task for your Windows account with an **At log on** trigger. For **Program/script**, use the path printed by `(Get-Command pnpm.cmd).Source`. For **Add arguments**, enter `--dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard`. Set **If the task is already running** to **Do not start a new instance**. Start and test the watchlist in the dashboard first. At the next sign-in, open **Monitor** and check the source state. Capture requires the PC to remain awake.
+To start at Windows sign-in, finish Setup first. In Task Scheduler, create a task for your Windows account with an **At log on** trigger. Use `powershell.exe` as the program and enter `-NoProfile -ExecutionPolicy Bypass -File "C:\path\to\HypeClip\scripts\start-windows.ps1" -NoBrowser` as the arguments, using your actual path. Set **If the task is already running** to **Do not start a new instance**. At the next sign-in, open **Monitor** and check the source state.
 
 ### Which connections do I need?
 
 | What you want to do | What to set up |
 | --- | --- |
 | Review a local recording or accessible public Kick archive | The local tools below. Kick replay chat is fetched when available. |
-| Monitor a live channel | A playable feed and the applicable media adapter. Use **Check source** on the channel you want to follow. For Streamlink, install its Windows build and put it on PATH, or set `HYPECLIP_STREAMLINK` in `.env`. |
-| Read Twitch or YouTube audience chat | Configure the corresponding reader in `.env`. Twitch uses a user token. YouTube uses a Data API key or access token. |
+| Monitor a live channel | Install Streamlink in **Setup**. Use **Check source** on the channel you want to follow. |
+| Read Twitch or YouTube audience chat | Save the corresponding reader in **Setup**. Twitch uses a user token. YouTube uses a Data API key or access token. |
 | Use TikTok LIVE | A playable live room or a creator-provided recording. Supply a timestamped chat export for chat detection. Native TikTok chat collection is unavailable. |
-| Publish through Buffer later | Configure Buffer and R2 only when you decide to publish. The dashboard never authorizes posting. |
+| Publish through Buffer later | Configure Buffer and R2 in **Setup**. The separate CLI workflow controls posting authorization. |
 
 **Sources → Stream chat** explains optional reader credentials. Run `pnpm hypeclip providers --check` to inspect this installation. [Provider setup guide](docs/monitor.md)
 
@@ -41,42 +43,21 @@ Run `pnpm hypeclip watchlist` for the ranked GTA VI roster and its source eviden
 
 Use `pnpm hypeclip monitor` for concurrent Twitch, YouTube Live, Kick and TikTok LIVE sources. The local workflow preserves original audio, captions speech and supports operator timestamps when chat is unavailable. Run the two real GTA VI edits with `pnpm hypeclip monitor --config .\docs\gta6-kick.json --once`. [Mixed URL setup, source capabilities, exports and voice previews](docs/monitor.md)
 
-## Install on a new Windows PC
+## Command-line setup
 
-Run from the repository root in PowerShell. The tested stack is Windows 11 x64, Node 22.15, pnpm 10.14, Python 3.13 and FFmpeg with libx264, libass and drawtext. For a fresh Windows machine, install `OpenJS.NodeJS.LTS`, `Python.Python.3.13`, `Ollama.Ollama` and `Gyan.FFmpeg` with `winget install --id <package> --exact`. Reopen PowerShell. A side-by-side FFmpeg installation also works. [Worker setup and pinned dependencies](workers/README.md)
+Run from the repository root with Node 22.15+ and pnpm 10.14. On Linux or WSL2, install Python 3.13 with venv, FFmpeg with libx264, libass and drawtext, and Ollama using your system package manager before running setup. [Python worker requirements](workers/README.md)
 
-```powershell
-npm install --global pnpm@10.14.0
+```sh
 pnpm install --frozen-lockfile
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
-py -3.13 -m venv .venv
-$python = (Resolve-Path .venv/Scripts/python.exe).Path
-& $python -m pip install -r workers/requirements.txt
-& $python -m pip check
-Get-CimInstance Win32_OperatingSystem | Select-Object Caption,TotalVisibleMemorySize,FreePhysicalMemory
-Get-PSDrive C | Select-Object Free
-nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv
-ollama list
-pnpm hypeclip setup-ollama
-Invoke-RestMethod http://localhost:11434/api/tags | Select-Object -ExpandProperty models | Select-Object name,size
-& $python -c "from huggingface_hub import try_to_load_from_cache as cached; from media.speech import MODEL_ID,MODEL_REVISION; print(cached(MODEL_ID,'model.bin',revision=MODEL_REVISION))"
+pnpm hypeclip setup
+pnpm hypeclip dashboard
 ```
 
-`setup-ollama` checks RAM, disk, GPU and local service health. It tests installed instruction models against structured JSON and pulls `qwen3:4b` if necessary. The equivalent manual download is `ollama pull qwen3:4b`. The verified endpoint and tag live in `~/.config/hypeclip/ollama.json`. For Whisper, the following setup call reuses the pinned snapshot or downloads missing files. The worker then runs offline on CPU/int8 with VAD and word timestamps.
+Run `pnpm hypeclip setup --check` to see readiness without installing anything. `pnpm hypeclip setup-ollama` verifies Ollama alone, reuses a compatible local model, and pulls `qwen3:4b` when needed. The verified model and endpoint are stored in `~/.config/hypeclip/ollama.json`. Ollama setup under WSL tries the Windows host gateway when loopback is unavailable. Whisper resumes using its local cache after setup.
 
-```powershell
-Remove-Item Env:HF_HUB_OFFLINE -ErrorAction SilentlyContinue
-$env:HF_HUB_DISABLE_XET = '1'
-& $python -c "from faster_whisper import download_model; from media.speech import MODEL_ID,MODEL_REVISION; print(download_model(MODEL_ID,revision=MODEL_REVISION))"
-$env:HF_HUB_OFFLINE = '1'
-pnpm hypeclip demo
-pnpm hypeclip status
-pnpm verify:local
-```
+Setup saves the optional connection values in `connections.json` under your HypeClip state directory. The default is `%LOCALAPPDATA%\HypeClip` on Windows and `$XDG_STATE_HOME/HypeClip` or `~/.local/state/HypeClip` on Linux. `HYPECLIP_HOME` overrides the path. The file contains plaintext credentials, so share the HypeClip download and keep this file private. Shell variables take precedence, followed by values saved or removed in Setup, then the checkout’s optional `.env`. New monitoring runs use saved values immediately. [Advanced environment options](.env.example)
 
-`demo` renders and evaluates a local fixture. `verify:local` exercises the normal CLI with genuine speech, a real Ollama decision, an endpoint outage and retry. It writes exact commands, JSON results, decoded frames and audio under the printed directory. Optional FFmpeg/Python paths and provider variables are in [.env.example](.env.example). The worker accepts `python -m workers.media --request <json-file> --result <json-file>`. [V1 contracts and examples](contracts/README.md)
-
-On Linux/WSL2, use Node 22.15+, pnpm 10.14, Python 3.13 with venv and FFmpeg on PATH. Use `python3.13 -m venv .venv`, `.venv/bin/python -m pip install -r workers/requirements.txt` and substitute `.venv/bin/python` for `& $python` above. WSL setup tries loopback and the Windows host gateway before starting another service. To check the Windows cache from WSL, set `HF_HOME=/mnt/c/Users/HP/.cache/huggingface` for this laptop. Share one database across publishing processes. Windows defaults to `%LOCALAPPDATA%\HypeClip` and Linux to `$XDG_STATE_HOME/HypeClip` or `~/.local/state/HypeClip`. `HYPECLIP_HOME` overrides the location.
+`pnpm hypeclip demo` renders and evaluates a local fixture. `pnpm verify:local` exercises speech, a real Ollama decision, an endpoint outage, and retry. The worker accepts `python -m workers.media --request <json-file> --result <json-file>`. [V1 contracts and examples](contracts/README.md)
 
 ## From an authorized recording to a clip
 
@@ -115,7 +96,7 @@ Jobs retain their destination and delivery mode. Automatic sends also require th
 
 ## Publish to TikTok
 
-Connect the intended TikTok profile in Buffer. Set `BUFFER_ACCESS_TOKEN` and `BUFFER_CHANNEL_ID` in `.env`. Create a dedicated HypeClip R2 bucket, attach a public HTTPS domain, and supply the five `HYPECLIP_R2_*` values from the example. Use credentials scoped to this bucket. Keep its objects publicly readable through publication. Set `HYPECLIP_CHANNEL_REQUIREMENTS` if the account requires manual privacy selection, commercial disclosure, approval or notification posting. Such clips go to review. [Buffer media hosting](https://developers.buffer.com/guides/hosting-media.html)
+Connect the intended TikTok profile in Buffer. Save the Buffer API key in **Setup**, then use **Publishing → Find TikTok channels** to select it. Create a dedicated HypeClip R2 bucket, attach a public HTTPS domain, and save the bucket and scoped credentials under **Setup → Cloudflare R2**. Keep its objects publicly readable through publication. Enter **Manual posting requirements** if the account needs manual privacy selection, commercial disclosure, approval or notification posting. Such clips go to review. [Buffer media hosting](https://developers.buffer.com/guides/hosting-media.html)
 
 Edit `caption.txt` for the post text. A dry run probes the final MP4 and displays the configured channel when available. It performs zero uploads and creates zero posts. For a live command, supply the exact channel ID shown in the preview.
 

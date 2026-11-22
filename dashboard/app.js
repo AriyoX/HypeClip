@@ -15,6 +15,7 @@ import {
   publishingSteps,
   publishingSummary,
 } from "./publishing.js";
+import { setupPage, toolList, updateSetup } from "./setup.js";
 
 const main = $("#main");
 const nav = {
@@ -22,6 +23,7 @@ const nav = {
   sources: "Sources",
   clips: "Clips",
   publishing: "Publishing",
+  setup: "Setup",
   settings: "Settings",
 };
 const platforms = {
@@ -61,9 +63,9 @@ const help = {
   Publishing:
     "Buffer connects the destination account. R2 makes the MP4 available to Buffer. Automatic posting is set per CLI session. Dashboard monitoring keeps clips local.",
   "Find TikTok channels":
-    "Reads your Buffer account’s connected TikTok channels. Copy the matching channel ID into .env and restart HypeClip.",
+    "Lists the TikTok channels connected to Buffer so you can select the account to use.",
   "Check Buffer connection":
-    "Uses the key and channel ID in .env to look up the selected TikTok account and its scheduling permissions. This check creates zero posts.",
+    "Looks up the selected TikTok account and its scheduling permissions using a read-only Buffer request.",
   "Render preview":
     "Applies the presentation settings using the saved clip’s speech timings. Play the preview, then choose Save version to keep the new MP4.",
   Crop: "Enter x, y, width and height from 0 to 1, measured from the source frame’s upper-left corner.",
@@ -156,7 +158,15 @@ function notify(message) {
 }
 function route(focus = false) {
   const [p, id, second] = location.hash.slice(1).split("/");
-  const nextPage = Object.hasOwn(nav, p) ? p : "overview";
+  if (p === "publishing" && id === "windows") {
+    location.replace("#setup/buffer");
+    return;
+  }
+  const nextPage = Object.hasOwn(nav, p)
+    ? p
+    : !p && !page && !state.setup.ready
+      ? "setup"
+      : "overview";
   if (page && (nextPage !== page || id !== pageDetail)) {
     clearTimeout(toastTimer);
     $("#notice").textContent = "";
@@ -180,9 +190,11 @@ function route(focus = false) {
   const section =
     page === "publishing" && id
       ? $("#setup-" + CSS.escape(id))
-      : page === "sources" && id === "chat"
-        ? $("#source-credentials")
-        : null;
+      : page === "setup" && id
+        ? $("#connection-" + CSS.escape(id))
+        : page === "sources" && id === "chat"
+          ? $("#source-credentials")
+          : null;
   if (section) {
     const target = section.querySelector("summary") || section;
     target.focus({ preventScroll: true });
@@ -495,11 +507,12 @@ function sourceList() {
 function sourceCredentials() {
   const descriptions = {
     Twitch: [
-      "Set <code>TWITCH_USER_TOKEN</code> in .env to a reader’s Twitch user access token with <code>user:read:chat</code>. Create a Twitch app, register its redirect URL, and authorize that reader. HypeClip looks up the streamer’s ID for the monitor. Renew the token when it expires.",
-      external(
-        "Twitch OAuth setup",
-        "https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#implicit-grant-flow",
-      ) +
+      "Use a Twitch user access token with <code>user:read:chat</code>. Create a Twitch app, register its redirect URL, and authorize the reader. Renew the token when it expires.",
+      '<a href="#setup/twitch">Save Twitch token</a> · ' +
+        external(
+          "Twitch OAuth setup",
+          "https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#implicit-grant-flow",
+        ) +
         " · " +
         external(
           "Twitch chat scope",
@@ -507,11 +520,12 @@ function sourceCredentials() {
         ),
     ],
     YouTube: [
-      "Enable YouTube Data API v3. Set <code>YOUTUBE_API_KEY</code> to a restricted API key, or set <code>YOUTUBE_ACCESS_TOKEN</code> to an OAuth bearer token with <code>youtube.readonly</code> scope. HypeClip needs an active chat on the live video. Renew OAuth tokens with their issuer.",
-      external(
-        "Set up YouTube API credentials",
-        "https://developers.google.com/youtube/v3/getting-started",
-      ) +
+      "Enable YouTube Data API v3. Use an API key restricted to the YouTube API or an OAuth token with <code>youtube.readonly</code> scope. The live video needs active chat. Renew OAuth tokens with their issuer.",
+      '<a href="#setup/youtube">Save YouTube credentials</a> · ' +
+        external(
+          "Set up YouTube API credentials",
+          "https://developers.google.com/youtube/v3/getting-started",
+        ) +
         " · " +
         external(
           "YouTube live chat",
@@ -554,9 +568,9 @@ function sourceCredentials() {
         <p>${copy}</p>${links ? h("p", links, "doc-links") : ""}</details>`;
       })
       .join("")}</div>
-    <details class="reader"><summary><strong>Configure or check a reader on Windows</strong></summary>
-      <p>Add the relevant setting to <code class="path">${esc(state.publishing.envPath)}</code> and restart the dashboard. This command checks installed adapters and validates a configured Twitch reader. The live monitor shows when messages arrive.</p>
-      ${codeBlock(powershell(state.publishing.envPath, "providers --check"), "Copy reader check command")}
+    <details class="reader"><summary><strong>Check readers in PowerShell</strong></summary>
+      <p>This command checks installed adapters and validates a configured Twitch token. The live monitor shows when messages arrive.</p>
+      ${codeBlock(powershell(state.publishing.cli, "providers --check"), "Copy reader check command")}
     </details>
   </section>`;
 }
@@ -966,6 +980,7 @@ function settings() {
         </form></section>
       <section class="surface"><div class="section-head"><h2>Local model</h2>${info("Qwen review")}</div>
         <p>${esc(state.model)}</p>
+        <a class="text-link" href="#setup">Manage tools and models</a>
       </section>
     </div>`;
 }
@@ -983,8 +998,10 @@ function draw() {
     sources,
     clips,
     settings,
+    setup: () => setupPage(state.setup, state.connections, pageDetail),
     publishing: () => publishingPage(state.publishing, pageDetail, channels),
   }[page]();
+  if (page === "setup") updateSetup(state.setup, state.connections);
   linkHint();
 }
 
@@ -1060,6 +1077,10 @@ async function refresh() {
   if (page === "sources") {
     patchRegion("source-list", sourceList());
     patchRegion("watchlist-status", rosterRows());
+  }
+  if (page === "setup") {
+    patchRegion("setup-tool-list", toolList(state.setup.tools));
+    updateSetup(state.setup, state.connections);
   }
   if (
     page === "publishing" &&
@@ -1170,6 +1191,18 @@ document.addEventListener("submit", async (event) => {
       await post("limit", { limit: Number(f.get("limit")) });
       notify("Capture limit saved");
     }
+    if (form.matches("[data-connection-form]")) {
+      form.querySelector("[role=alert]").textContent = "";
+      const entries = [...f]
+        .map(([key, value]) => [key, value.trim()])
+        .filter(([, value]) => value);
+      if (!entries.length) throw Error("Enter a value to save.");
+      await post("connections", Object.fromEntries(entries));
+      for (const [key] of entries) form.elements.namedItem(key).value = "";
+      if (entries.some(([key]) => key === "BUFFER_ACCESS_TOKEN"))
+        channels = null;
+      notify("Connection settings saved");
+    }
     if (form.id === "profile") {
       const s = state.sources.find((source) => source.id === selectedSource);
       const vals = layoutValues(f, s.form.settings);
@@ -1207,6 +1240,8 @@ document.addEventListener("submit", async (event) => {
     if (form.id === "source-form" && form.isConnected) {
       $("#checked").innerHTML = "";
       sourceError(error.message);
+    } else if (form.matches("[data-connection-form]") && form.isConnected) {
+      form.querySelector("[role=alert]").textContent = error.message;
     } else notify(error.message);
   } finally {
     if (submit) submit.disabled = false;
@@ -1295,6 +1330,21 @@ document.addEventListener("click", async (event) => {
     }
     target.disabled = true;
     switch (act) {
+      case "setup":
+        await post("setup", { action: id });
+        await refresh();
+        return;
+      case "remove-connection": {
+        await post("connections", { [id]: null });
+        document.getElementById(id)?.focus();
+        if (id === "BUFFER_ACCESS_TOKEN") channels = null;
+        notify("Connection value removed");
+        break;
+      }
+      case "select-channel":
+        await post("connections", { BUFFER_CHANNEL_ID: id });
+        notify("TikTok channel saved");
+        break;
       case "check-output": {
         const p = await post("check-output", {});
         state.publishing = p;
@@ -1402,7 +1452,7 @@ document.addEventListener("click", async (event) => {
   } catch (error) {
     notify(error.message);
   } finally {
-    target.disabled = false;
+    target.disabled = act === "setup" && !!state.setup.action;
   }
 });
 

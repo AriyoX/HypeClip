@@ -55,7 +55,7 @@ function setupNext(p) {
   if (p.destination === "missing")
     return [
       "buffer",
-      "Find the intended TikTok channel and save its ID in .env.",
+      "Find and select the intended TikTok channel.",
       "Find your TikTok channel",
     ];
   if (p.destination === "disconnected")
@@ -157,8 +157,8 @@ export function publishingSteps(p, selectedStep, channels) {
     `
     <ol class="instructions">
       <li>Sign in to the TikTok account you want to post to. In Buffer, open <strong>Channels</strong>, choose <strong>Connect New Channel → TikTok</strong>, and authorize that account.</li>
-      <li>In Buffer’s <strong>Settings → API</strong>, create a personal API key and save it as <code>BUFFER_ACCESS_TOKEN</code>. HypeClip uses it to authenticate to Buffer.</li>
-      <li><a href="#publishing/windows">Save the key in .env and restart</a>. Use <strong>Find TikTok channels</strong>, match the account and organization, then copy its ID into <code>BUFFER_CHANNEL_ID</code>. That ID selects the account to receive clips. Restart after saving it.</li>
+      <li>Create a personal API key in Buffer’s <strong>Settings → API</strong> and <a href="#setup/buffer">save it in Setup</a>.</li>
+      <li>Choose <strong>Find TikTok channels</strong>, then select the matching account and organization.</li>
     </ol>
     <dl class="requirements">
       ${requirement("Buffer API key", "BUFFER_ACCESS_TOKEN", bufferStatus[p.buffer])}
@@ -177,7 +177,7 @@ export function publishingSteps(p, selectedStep, channels) {
               ? channels
                   .map(
                     (c) =>
-                      `<div class="channel-result"><div><strong>${esc(c.name)}</strong><span>${esc(c.organization)}</span></div>${button("Copy channel ID", "copy-channel", c.id)}</div>`,
+                      `<div class="channel-result"><div><strong>${esc(c.name)}</strong><span>${esc(c.organization)}</span></div><div class="actions">${button("Use this channel", "select-channel", c.id)}${button("Copy channel ID", "copy-channel", c.id)}</div></div>`,
                   )
                   .join("")
               : "<p>Buffer returned no TikTok channels. Connect the account and try again.</p>"
@@ -208,7 +208,7 @@ export function publishingSteps(p, selectedStep, channels) {
     <dl class="requirements">
       ${p.r2.map(({ key, status }, i) => requirement(r2Labels[i], key, r2Status[status])).join("")}
     </dl>
-    <p>After saving and restarting, open an existing object’s public URL in a private browser window. During a live send, HypeClip checks that the final MP4 can be fetched anonymously and matches the original bytes.</p>
+    <p><a href="#setup/r2">Save the R2 settings</a>, then open an existing object’s public URL in a private browser window. During a live send, HypeClip checks that the final MP4 can be fetched anonymously and matches the original bytes.</p>
     <div class="doc-links">
       ${external("Find the account ID", "https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/#copy-your-account-id")}
       ${external("Create an R2 bucket", "https://developers.cloudflare.com/r2/buckets/create-buckets/")}
@@ -218,32 +218,10 @@ export function publishingSteps(p, selectedStep, channels) {
     </div>`,
   );
 
-  const envTemplate = [
-    "BUFFER_ACCESS_TOKEN=<your-buffer-api-key>",
-    "BUFFER_CHANNEL_ID=<your-tiktok-channel-id>",
-    "HYPECLIP_R2_ACCOUNT_ID=<your-cloudflare-account-id>",
-    "HYPECLIP_R2_BUCKET=<your-bucket-name>",
-    "HYPECLIP_R2_ACCESS_KEY_ID=<your-s3-access-key-id>",
-    "HYPECLIP_R2_SECRET_ACCESS_KEY=<your-s3-secret-access-key>",
-    "HYPECLIP_R2_PUBLIC_URL=<https://your-public-media-domain>",
-    "# HYPECLIP_CHANNEL_REQUIREMENTS=Manual privacy or commercial disclosure required",
-  ].join("\n");
-  const ps = (args) => powershell(p.envPath, args);
-  const windows = step(
-    "windows",
-    3,
-    "Save settings on Windows",
-    ".env",
-    `
-    <p>Open or create <code class="path">${esc(p.envPath)}</code> in Notepad. Update these lines, replacing each placeholder. Save the file as <code>.env</code> and leave your other settings in place.</p>
-    ${codeBlock(envTemplate, "Copy .env template")}
-    <p>Keep the key values in this local file. HypeClip reads it at startup. A value already set in PowerShell takes precedence.</p>
-    <p>Press <kbd>Ctrl+C</kbd> in the terminal running HypeClip to stop the dashboard, then launch it again.</p>
-    ${codeBlock(ps("dashboard"), "Copy restart command")}`,
-  );
+  const ps = (args) => powershell(p.cli, args);
   const dryRun = step(
     "dry-run",
-    4,
+    3,
     "Try a publishing dry run",
     "PowerShell",
     `
@@ -254,7 +232,7 @@ export function publishingSteps(p, selectedStep, channels) {
   );
   const enable = step(
     "enable",
-    5,
+    4,
     "Turn automatic posting on or off",
     "CLI sessions only",
     `
@@ -262,7 +240,7 @@ export function publishingSteps(p, selectedStep, channels) {
     <dl class="rules">
       <div><dt>Destination</dt><dd>${p.destination === "verified" ? esc(p.name) : "Use Check Buffer connection to confirm the TikTok account."} Copy the matching <code>BUFFER_CHANNEL_ID</code> into the command.</dd></div>
       <div><dt>Eligible clips</dt><dd>The CLI needs a real recording, confirmed capture and posting rights, and a matching session policy. A clip needs a valid render, usable speech, a verified model’s acceptance and caption, and no review flags. The example caps posting at one and uses Buffer’s queue.</dd></div>
-      <div><dt>Clips marked Review</dt><dd>These are held for inspection. Marking a dashboard clip reviewed records that you checked it. For channel-specific approval, notification, privacy or commercial disclosure needs, set <code>HYPECLIP_CHANNEL_REQUIREMENTS</code> to hold the post for review.</dd></div>
+      <div><dt>Clips marked Review</dt><dd>These are held for inspection. Marking a dashboard clip reviewed records that you checked it. For channel-specific approval, notification, privacy or commercial disclosure, fill in <strong>Manual posting requirements</strong> in Setup.</dd></div>
       <div><dt>Existing clips</dt><dd>Enabling a session does not send old clips. It can assign the destination to older unassigned Review jobs for that exact CLI session and recording. An explicit <code>evaluate &lt;id&gt;</code> retry can send one if it passes the same checks. A saved destination stays bound to the job.</dd></div>
     </dl>
     <p>Replace the recording path, session name and channel ID before running <code>auto-enable</code>. Use the same session and recording with <code>process</code>, plus your timestamped chat JSONL and the UTC time of the first video frame.</p>
@@ -280,7 +258,7 @@ export function publishingSteps(p, selectedStep, channels) {
     <p>Run <code>auto-off</code> to turn off all CLI sessions, or add <code>--session 'my-session'</code> to stop just that one. Check Buffer for posts already queued or in flight.</p>
     ${codeBlock(ps("auto-off"), "Copy turn-off command")}`,
   );
-  return buffer + r2 + windows + dryRun + enable;
+  return buffer + r2 + dryRun + enable;
 }
 
 export function publishingPage(config, step, channels) {

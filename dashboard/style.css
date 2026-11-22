@@ -882,6 +882,83 @@ input[type="checkbox"] {
 .form-message:empty {
   display: none;
 }
+
+.setup-layout,
+.connection-grid {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+.setup-layout {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+.setup-tools {
+  display: grid;
+  gap: 16px;
+}
+.setup-tools dd {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+.setup-tools > p,
+.setup-connections > p {
+  color: var(--muted);
+}
+.setup-tools > .error {
+  color: #972e22;
+}
+.setup-connections {
+  margin-top: 30px;
+}
+.setup-connections > p {
+  margin-top: 8px;
+}
+.connection-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+.connection.surface {
+  padding: 0;
+}
+.connection summary {
+  padding: 15px 20px;
+  font-weight: 700;
+  border-radius: var(--radius);
+}
+.connection[open] > summary {
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.connection form {
+  margin: 0;
+  padding: 16px 20px 20px;
+}
+.connection-label,
+.connection-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.connection-label {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.connection-label span {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.connection-label span:empty {
+  display: none;
+}
+.connection-input {
+  align-items: end;
+}
+.connection-input button {
+  min-height: 45px;
+}
 #checked > p {
   margin-top: 12px;
 }
@@ -1380,6 +1457,10 @@ dialog p {
   }
 }
 @media (max-width: 720px) {
+  .setup-layout,
+  .connection-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .header-inner {
     grid-template-columns: 1fr auto;
     gap: 6px 10px;
@@ -1438,6 +1519,10 @@ dialog p {
   .header-inner,
   main {
     padding-inline: 15px;
+  }
+  nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .brand {
     font-size: 1.88rem;

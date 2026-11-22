@@ -26,8 +26,7 @@ export const codeBlock = (value, label) =>
     <pre tabindex="0" aria-label="${esc(label)}"><code>${esc(value)}</code></pre>
     ${button(label, "copy", "", "copy-button")}
   </div>`;
-export const powershell = (envPath, args) =>
-  "pnpm --dir '" +
-  envPath.replace(/[\\/]\.env$/, "").replaceAll("'", "''") +
-  "' hypeclip " +
-  args;
+export const powershell = ({ cwd, node }, args) => {
+  const quote = (value) => "'" + value.replaceAll("'", "''") + "'";
+  return `Push-Location -LiteralPath ${quote(cwd)}\ntry { & ${quote(node)} --experimental-strip-types cli.ts ${args} } finally { Pop-Location }`;
+};

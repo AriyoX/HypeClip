@@ -37,26 +37,31 @@ def speech_samples(path: Path):
     return pcm.astype(np.float32) / 32768
 
 
-def load_model():
-    os.environ["HF_HUB_OFFLINE"] = "1"
-    try:
-        from faster_whisper import WhisperModel
-        from huggingface_hub import try_to_load_from_cache
-    except (ImportError, OSError) as exc:
-        raise WorkerError("MISSING_SPEECH_DEPENDENCY", f"faster-whisper could not load: {exc}") from exc
-
+def model_path() -> Path:
     configured = os.environ.get("HYPECLIP_WHISPER_MODEL_PATH")
     if configured:
         path = Path(configured).resolve()
     else:
+        from huggingface_hub import try_to_load_from_cache
+
         cached_model = try_to_load_from_cache(MODEL_ID, "model.bin", revision=MODEL_REVISION)
         if not isinstance(cached_model, str):
             raise WorkerError(
-                "MISSING_SPEECH_MODEL", "The Whisper small snapshot is absent from the local cache. See workers/README.md.",
+                "MISSING_SPEECH_MODEL", "Install Whisper small from Setup or run pnpm hypeclip setup.",
             )
         path = Path(cached_model).parent
     if any(not (path / name).is_file() for name in MODEL_FILES[:3]):
         raise WorkerError("MISSING_SPEECH_MODEL", f"Incomplete local Whisper model at {path}.")
+    return path
+
+
+def load_model():
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    try:
+        from faster_whisper import WhisperModel
+        path = model_path()
+    except (ImportError, OSError) as exc:
+        raise WorkerError("MISSING_SPEECH_DEPENDENCY", f"faster-whisper could not load: {exc}") from exc
     try:
         return WhisperModel(str(path), device="cpu", compute_type="int8", cpu_threads=4, local_files_only=True)
     except Exception as exc:

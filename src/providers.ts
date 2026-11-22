@@ -2,16 +2,20 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { streamlink } from "./platforms.ts";
 import { identity } from "./twitch.ts";
+import { workerEnv } from "./worker.ts";
+
+export function streamlinkVersion() {
+  return promisify(execFile)(streamlink(), ["--version"], {
+    timeout: 8000,
+    windowsHide: true,
+    env: workerEnv(),
+  })
+    .then(({ stdout }) => stdout.trim() || null)
+    .catch(() => null);
+}
 
 export async function providerStatus(check = false) {
-  let media = "missing Streamlink";
-  try {
-    const { stdout } = await promisify(execFile)(streamlink(), ["--version"], {
-      timeout: 8000,
-      windowsHide: true,
-    });
-    media = "configured " + stdout.trim();
-  } catch {}
+  const version = await streamlinkVersion();
   let twitch = process.env.TWITCH_USER_TOKEN
     ? "configured, unverified"
     : "missing TWITCH_USER_TOKEN";
@@ -23,6 +27,16 @@ export async function providerStatus(check = false) {
       twitch = "configured, validation failed";
     }
   }
+  return providerRows(version, twitch);
+}
+
+export function providerRows(
+  version: string | null,
+  twitch = process.env.TWITCH_USER_TOKEN
+    ? "configured, unverified"
+    : "missing TWITCH_USER_TOKEN",
+) {
+  const media = version ? "configured " + version : "missing Streamlink";
   const yt =
     process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_ACCESS_TOKEN
       ? "configured, delivery unverified"

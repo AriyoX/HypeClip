@@ -1,5 +1,7 @@
 # Local media worker
 
+For the standard app install, use **Setup → Install tools and models**. The commands below also support a standalone worker. [Windows setup](../README.md#install-on-windows)
+
 Run the v1 worker from the worktree root with Python 3.13 and FFmpeg 5.1 or later. FFmpeg needs `libx264` and `libass`. The fixture generator also needs `drawtext`. The setup below uses the Windows x64 build from [FFmpeg’s Windows download list](https://ffmpeg.org/download.html#build-windows).
 
 ## Setup on Windows

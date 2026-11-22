@@ -2,10 +2,10 @@
 
 ## Dashboard
 
-From PowerShell, run the following command. Open the printed loopback address. Leave that terminal open while monitoring.
+On Windows, open **Start HypeClip.cmd** from the extracted folder. With pnpm installed, you can also start from the checkout in PowerShell. Keep the terminal open while monitoring. [Windows setup](../README.md#install-on-windows)
 
 ```powershell
-pnpm --dir "C:\Users\HP\OneDrive\Documents\Desktop\Ariyo\clip-it" hypeclip dashboard
+pnpm hypeclip dashboard --open
 ```
 
 Overview shows active work and the local clip library. Sources opens with no initial selections. A saved source starts only when enabled. Use **Check source** before monitoring a URL or local recording. With synchronized JSONL, provide the UTC time of the first recorded frame. Public Kick VODs support a bounded archive interval and original replay chat when available. For another known archive, select the archive option if its URL also serves live broadcasts. Sources share the machine-wide capture budget with the CLI. Explicitly selected sources can resume on a server restart.
@@ -59,7 +59,7 @@ Invoke-RestMethod 'https://api.kick.com/public/v1/events/subscriptions' -Method 
 
 ### Local configuration
 
-Run commands from the checkout. `cli.ts` reads the working directory's optional `.env` before dispatching the command. Values already in the process environment take precedence, including empty strings. Restart the server after changing its environment. Keep private feed URLs and account credentials in the server's environment or its ignored `.env`. A local recording and optional chat export can run with all provider credentials blank.
+Run commands from the checkout. Use **Setup** in the dashboard to save optional reader credentials and publishing settings. New monitoring runs use these values immediately. Launch environment variables take precedence, followed by Setup values, then the working directory's optional `.env`. Restart the dashboard after editing `.env` or its launch environment. Keep custom private feed URLs in the environment or the ignored `.env`. A local recording and optional chat export can run with all provider credentials blank.
 
 | Setting | Source, usage and check |
 | --- | --- |
@@ -70,7 +70,7 @@ Run commands from the checkout. `cli.ts` reads the working directory's optional 
 | `HYPECLIP_STREAMLINK` | Optional executable for live discovery/playback. On Windows the adapter first checks `%LOCALAPPDATA%\HypeClip\tools\streamlink\Scripts\streamlink.exe`, then PATH. Check with `pnpm hypeclip providers --check`. |
 | `HYPECLIP_PYTHON`, `HYPECLIP_WORKER_ROOT` | Interpreter and optional separate checkout containing `media` and `workers`. Default analysis interpreter on Windows is the checkout's `.venv\Scripts\python.exe`. Run it with `-m workers.media --help`. [Worker setup](../workers/README.md) |
 | `HYPECLIP_WHISPER_MODEL_PATH`, `HF_HOME`, `XDG_CACHE_HOME`, `HF_HUB_OFFLINE` | Optional CTranslate2 snapshot path or Hugging Face cache location. The default is pinned to `Systran/faster-whisper-small` revision `536b0662742c02347bc0e980a01041f333bce120`. Acquisition is a one-time setup step. Speech analysis forces offline loading. Check a non-silent clip with `pnpm hypeclip language-samples <recording> --to <new-directory>`. [Model installation](../workers/README.md) |
-| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | Local Ollama server and installed model tag. To select Qwen, install `qwen3:4b`, set that tag and run `pnpm hypeclip setup-ollama`. Check the returned model. Setup tests structured output, can select another installed model if verification fails, and saves the verified endpoint/tag in `~/.config/hypeclip/ollama.json`. A later override must match that receipt to count as verified. |
+| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | Local Ollama endpoint and preferred model tag. Setup verifies the explicit tag or chooses a compatible installed model when the tag is unset. It downloads `qwen3:4b` if no compatible model is available. The verified endpoint and tag are saved in `~/.config/hypeclip/ollama.json`. A later override must match that receipt to count as verified. |
 | `HYPECLIP_KOKORO_DIR`, `HYPECLIP_KOKORO_PYTHON`, `OMP_NUM_THREADS` | Optional narration only. The directory contains `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin`. Default interpreter is the `venv` under that directory. The standalone voice process defaults the thread setting to 2. Check with the `voice-preview` command below. |
 | Source `feedEnv` | Set this field to the **name** of your environment variable containing an authorized HTTP(S) stream URL. Supply the current broadcast ID separately. Check `monitor --inspect --config <sources.json>` for a resolved feed. |
 | `HYPECLIP_ISOLATED` | Local test sessions can set this in the calling shell before launch. A nonempty value skips checkout `.env` loading and disables the EventSub collector. Other adapters retain their individual behavior. |

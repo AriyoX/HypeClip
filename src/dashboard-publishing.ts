@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { assetUrl } from "./asset.ts";
 import {
   buffer,
@@ -81,7 +80,7 @@ export function dashboardPublishing() {
   return {
     status() {
       return {
-        envPath: join(process.cwd(), ".env"),
+        cli: { cwd: process.cwd(), node: process.execPath },
         buffer: present(bufferKeys[0]) ? connection : "missing",
         destination: present(bufferKeys[1]) ? destination : "missing",
         name,
@@ -93,7 +92,7 @@ export function dashboardPublishing() {
     async check() {
       if (!present(bufferKeys[0]) || !present(bufferKeys[1]))
         throw Error(
-          "Add the Buffer API key and TikTok channel ID to .env, then restart HypeClip.",
+          "Save the Buffer API key and TikTok channel ID in Setup.",
         );
       try {
         // Match the destination setting and the adapter used for a live send.
@@ -104,7 +103,7 @@ export function dashboardPublishing() {
         const reason = restriction(channel);
         requirement =
           reason && reason === process.env.HYPECLIP_CHANNEL_REQUIREMENTS
-            ? "Manual posting requirements are configured in .env."
+            ? "Manual posting requirements are configured."
             : reason;
       } catch {
         connection = "failed";
@@ -114,7 +113,7 @@ export function dashboardPublishing() {
     },
     async find() {
       if (!present(bufferKeys[0]))
-        throw Error("Add the Buffer API key to .env, then restart HypeClip.");
+        throw Error("Save the Buffer API key in Setup.");
       let authenticated = false;
       try {
         const organizations = await bufferOrganizations();

@@ -31,8 +31,10 @@ import {
 import { previewSource } from "./source-preview.ts";
 import { ChannelEdit } from "./editorial.ts";
 import { EditSettings } from "./review-export.ts";
-import { providerStatus } from "./providers.ts";
+import { providerRows } from "./providers.ts";
 import { localModel, safeMessage, writeJson } from "./local.ts";
+import type { Connections } from "./connections.ts";
+import { guidedSetup, setupActions } from "./guided-setup.ts";
 import { dashboardPublishing } from "./dashboard-publishing.ts";
 import {
   dashboardActivity,
@@ -144,7 +146,7 @@ async function mediaFile(
     () => {},
   );
 }
-export async function dashboard(port: number) {
+export async function dashboard(port: number, connections: Connections, open: boolean) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
     throw Error("Use a dashboard port from 1024 to 65535");
   const db = libraryDb(),
@@ -160,13 +162,17 @@ export async function dashboard(port: number) {
   }
   const url = "http://127.0.0.1:" + port,
     hosts = new Set(["127.0.0.1:" + port, "localhost:" + port]);
-  const providers = await providerStatus(),
+  const setup = guidedSetup(),
     active = new Map<string, Task>(),
     inspected = new Map<string, CheckedSource>();
-  const publishing = dashboardPublishing();
-  const secrets = Object.entries(process.env)
-    .filter(([key]) => /TOKEN|SECRET|PASSWORD|ACCESS_KEY|API_KEY/i.test(key))
-    .flatMap(([, value]) => (value?.trim() ? [value.trim()] : []));
+  let publishing = dashboardPublishing();
+  const secrets = new Set<string>();
+  function rememberSecrets() {
+    for (const [key, value] of Object.entries(process.env))
+      if (value?.trim() && /TOKEN|SECRET|PASSWORD|ACCESS_KEY|API_KEY/i.test(key))
+        secrets.add(value.trim());
+  }
+  rememberSecrets();
   const watchlist = watchRows();
   const previews = new Map<string, Export>(),
     rendering = new Map<string, Task>(),
@@ -412,6 +418,9 @@ export async function dashboard(port: number) {
           ...dashboardActivity(slot.home, undefined, slot.source),
         });
     }
+    const setupStatus = setup.status();
+    let model = "Unconfigured";
+    try { model = localModel().model || model; } catch { model = "Check Ollama configuration"; }
     return {
       sources,
       clips,
@@ -431,7 +440,7 @@ export async function dashboard(port: number) {
               ? "Waiting for a capture slot or ranking priority"
               : r.state,
       })),
-      providers,
+      providers: providerRows(setupStatus.tools?.streamlink || null),
       errors,
       renders: [...rendering].map(([id, v]) => ({
         id,
@@ -439,8 +448,10 @@ export async function dashboard(port: number) {
         reason: v.reason,
         updated: v.updated,
       })),
-      model: localModel().model || "Unconfigured",
+      model,
       publishing: publishing.status(),
+      setup: setupStatus,
+      connections: connections.status(),
     };
   }
   const server = createServer(async (req, res) => {
@@ -529,6 +540,7 @@ export async function dashboard(port: number) {
           "/app.js": ["app.js", "text/javascript; charset=utf-8"],
           "/ui.js": ["ui.js", "text/javascript; charset=utf-8"],
           "/publishing.js": ["publishing.js", "text/javascript; charset=utf-8"],
+          "/setup.js": ["setup.js", "text/javascript; charset=utf-8"],
           "/style.css": ["style.css", "text/css; charset=utf-8"],
           "/fonts/barlow-condensed-700.woff2": [
             "fonts/barlow-condensed-700.woff2",
@@ -557,6 +569,21 @@ export async function dashboard(port: number) {
         return;
       }
       const b = await body(req);
+      if (path === "/api/setup") {
+        const action = z.enum(setupActions).parse(b.action);
+        if (setup.status().action) throw Error("Setup is already running.");
+        void setup.run(action);
+        respond(setup.status(), 202);
+        return;
+      }
+      if (path === "/api/connections") {
+        const changed = connections.save(b);
+        rememberSecrets();
+        if (changed.includes("BUFFER_ACCESS_TOKEN") || changed.includes("BUFFER_CHANNEL_ID"))
+          publishing = dashboardPublishing();
+        respond({ ok: true });
+        return;
+      }
       if (path === "/api/inspect") {
         const s = await inspectSource(b);
         inspected.set(s.id, s);
@@ -635,7 +662,9 @@ export async function dashboard(port: number) {
         return;
       }
       if (path === "/api/find-destinations") {
-        const channels = await publishing.find();
+        const current = publishing;
+        const channels = await current.find();
+        if (current !== publishing) throw Error("Buffer settings changed. Find channels again.");
         respond({ channels, publishing: publishing.status() });
         return;
       }
@@ -752,10 +781,18 @@ export async function dashboard(port: number) {
   process.once("SIGINT", close);
   process.once("SIGTERM", close);
   try {
+    await setup.run("check");
     await new Promise<void>((ok, fail) => {
       server.once("error", fail);
       server.listen(port, "127.0.0.1", () => {
         console.log(url);
+        if (open) {
+          const command = process.platform === "win32" ? "rundll32.exe" : process.platform === "darwin" ? "open" : "xdg-open";
+          const args = process.platform === "win32" ? ["url.dll,FileProtocolHandler", url] : [url];
+          execFile(command, args, { windowsHide: true }, (error) => {
+            if (error) console.log("Open " + url + " in your browser.");
+          });
+        }
         ok();
       });
     });
